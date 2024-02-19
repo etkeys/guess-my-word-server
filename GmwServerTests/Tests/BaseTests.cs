@@ -58,6 +58,10 @@ public class BaseTests: IDisposable
             foreach(var room in (GameRoom[])roomsData)
                 db.Rooms.Add(room);
 
+        if (tables!.TryGetValue("Users", out var usersData))
+            foreach(var user in (User[])usersData)
+                db.Users.Add(user);
+
         await db.SaveChangesAsync();
 
     }

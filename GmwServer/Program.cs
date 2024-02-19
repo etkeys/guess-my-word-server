@@ -29,6 +29,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<IRoomJoinCodeProvider, RoomJoinCodeProvider>();
 builder.Services.AddTransient<IGameRoomService, GameRoomService>();
+builder.Services.AddTransient<IUserService, UserService>();
 
 var app = builder.Build();
 

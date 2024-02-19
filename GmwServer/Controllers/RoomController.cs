@@ -2,7 +2,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GmwServer.Controllers;
+namespace GmwServer;
 
 [ApiController]
 [Route("room")]
@@ -26,7 +26,7 @@ public class GameRoomController : ControllerBase
         if (result.Status == HttpStatusCode.Created)
             return CreatedAtAction(nameof(GetRoom), new {id = ((GameRoomId)result.GetData()!).Value}, result.GetData());
 
-        throw new Exception($"Unhandled result with status '{result.Status}'.");
+        return Problem($"Processing ended with unexpected result: {result.Status}.");
     }
 
     [HttpGet("{id}", Name="GetRoom")]
@@ -44,7 +44,9 @@ public class GameRoomController : ControllerBase
         if (result.Status == HttpStatusCode.NotFound)
             return NotFound(result.GetError());
 
-        throw new Exception($"Unhandled result with status '{result.Status}'.");
+        return Problem(
+            $"Processing ended with unexpected result: {result.Status}.",
+            $"{nameof(GameRoomController)}.{nameof(GetRoom)}");
 
         // TODO
         /*

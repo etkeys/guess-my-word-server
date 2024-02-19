@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GmwServer.Controllers;
+namespace GmwServer;
 
 [ApiController]
 [Route("user")]
@@ -36,7 +36,7 @@ public class UserController : ControllerBase
         if (result.Status == HttpStatusCode.UnprocessableEntity)
             return UnprocessableEntity(result.GetError());
 
-        throw new Exception($"Unhandled result with status '{result.Status}'.");
+        return Problem($"Processing ended with unexpected result: {result.Status}.");
     }
 
     [HttpGet("{id}", Name = "GetUser")]

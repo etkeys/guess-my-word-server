@@ -10,7 +10,7 @@ public class GameRoomService: IGameRoomService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<GameRoomId?> CreateRoom(IRoomJoinCodeProvider jcProvider){
+    public async Task<IServiceResult> CreateRoom(IRoomJoinCodeProvider jcProvider){
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         var joinCode = jcProvider.GetRoomJoinCode();
@@ -45,24 +45,28 @@ public class GameRoomService: IGameRoomService
         db.Rooms.Add(room);
         await db.SaveChangesAsync();
 
-        return room.Id;
+        return ServiceResults.Created(room.Id);
     }
 
-    public async Task<GameRoom?> GetRoomStatus(GameRoomId id){
+    public async Task<IServiceResult> GetRoomStatus(GameRoomId id){
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
-        return await
+        var result = await
             (from r in db.Rooms
             where r.Id == id
             select r)
             .FirstOrDefaultAsync();
+
+        return result is not null
+            ? ServiceResults.Ok(result)
+            : ServiceResults.NotFound($"Could not find room with id '{id.Value}'.");
     }
 
 }
 
 public interface IGameRoomService
 {
-    Task<GameRoomId?> CreateRoom(IRoomJoinCodeProvider jcProvider);
+    Task<IServiceResult> CreateRoom(IRoomJoinCodeProvider jcProvider);
 
-    Task<GameRoom?> GetRoomStatus(GameRoomId id);
+    Task<IServiceResult> GetRoomStatus(GameRoomId id);
 }

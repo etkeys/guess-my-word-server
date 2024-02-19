@@ -1,6 +1,6 @@
 
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GmwServer.Controllers;
 
@@ -14,8 +14,8 @@ public class GameRoomController : ControllerBase
     }
 
     [HttpPost("createRoom", Name = "CreateRoom")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<ActionResult<GameRoomId>> CreateRoom(){
+    [ProducesResponseType(typeof(GameRoomId), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateRoom(){
         //TODO how to defend against spam?
 
         var svc = _serviceProvider.GetRequiredService<IGameRoomService>();
@@ -23,24 +23,28 @@ public class GameRoomController : ControllerBase
 
         var result = await svc.CreateRoom(jcProvider);
 
-        if (result is null)
-            throw new Exception("Unable to create an new room.");
+        if (result.Status == HttpStatusCode.Created)
+            return CreatedAtAction(nameof(GetRoom), new {id = ((GameRoomId)result.GetData()!).Value}, result.GetData());
 
-        return CreatedAtAction(nameof(GetRoom), new {id = result.Value}, result);
+        throw new Exception($"Unhandled result with status '{result.Status}'.");
     }
 
     [HttpGet("{id}", Name="GetRoom")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(GameRoom), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
     // TODO how to fix the first arugment?
-    public async Task<ActionResult<GameRoom>> GetRoom(Guid id){
+    public async Task<IActionResult> GetRoom(Guid id){
         var svc = _serviceProvider.GetRequiredService<IGameRoomService>();
 
         var result = await svc.GetRoomStatus(new GameRoomId(id));
 
-        return result is null
-            ? NotFound()
-            : Ok(result);
+        if (result.Status == HttpStatusCode.OK)
+            return Ok(result.GetData());
+
+        if (result.Status == HttpStatusCode.NotFound)
+            return NotFound(result.GetError());
+
+        throw new Exception($"Unhandled result with status '{result.Status}'.");
 
         // TODO
         /*

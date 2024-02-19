@@ -49,16 +49,22 @@ public partial class UserServiceTests
         var actor = new UserService(_dbContextFactoryMock.Object);
         var act = await actor.CreateUser(inpMailAddress);
 
-        var exp = CreateExpectedServiceResult((Dictionary<string, object?>)test.Expected["service result"]!);
+        var exp = (IServiceResult)test.Expected["service result"]!;
 
         Assert.Equal(exp.IsError, act.IsError);
         Assert.Equal(exp.Status, act.Status);
-        Assert.Equal(exp.GetError(), act.GetError());
 
         if (exp.IsError){
             Assert.Null(act.GetData());
+            Assert.NotNull(act.GetError());
+            Assert.IsType<string>(act.GetError());
+            Assert.False(string.IsNullOrWhiteSpace((string)act.GetError()!));
             return;
         }
+
+        Assert.Null(act.GetError());
+        Assert.NotNull(act.GetData());
+        Assert.IsType<UserId>(act.GetData());
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
@@ -74,27 +80,14 @@ public partial class UserServiceTests
         Assert.Equal(inpMailAddress.User, actUser.DisplayName);
     }
 
-    private IServiceResult CreateExpectedServiceResult(Dictionary<string, object?> properties){
-        var mock = new Mock<IServiceResult>();
-
-        mock.Setup(e => e.IsError).Returns((bool)properties["is error"]!);
-        mock.Setup(e => e.Status).Returns((HttpStatusCode)properties["status"]!);
-
-        mock.Setup(e => e.GetError()).Returns(properties["error"]);
-
-        return mock.Object;
-    }
-
     public static IEnumerable<object[]> CreateUserTestsData => BundleTestCases(
         new TestCase("Email doesn't exist, empty user table")
             .WithInput("email", new MailAddress("john.doe@example.com"))
             .WithExpected(
                 "service result",
-                new Dictionary<string, object?>{
-                    {"is error", false},
-                    {"status", HttpStatusCode.Created},
-                    {"error", null}
-                })
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Created)
+                    .Create())
 
 
         ,new TestCase("Email doesn't exist, user table populated")
@@ -118,11 +111,9 @@ public partial class UserServiceTests
             .WithInput("email", new MailAddress("john.doe@example.com"))
             .WithExpected(
                 "service result",
-                new Dictionary<string, object?>{
-                    {"is error", false},
-                    {"status", HttpStatusCode.Created},
-                    {"error", null}
-                })
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Created)
+                    .Create())
 
 
         ,new TestCase("Email already exists")
@@ -146,14 +137,11 @@ public partial class UserServiceTests
             .WithInput("email", new MailAddress("john.doe@somesite.com"))
             .WithExpected(
                 "service result",
-                new Dictionary<string, object?>{
-                    {"is error", true},
-                    {"status", HttpStatusCode.UnprocessableEntity},
-                    {"error", "Email address already registered."}
-                })
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.UnprocessableEntity)
+                    .WithIsError(true)
+                    .Create())
 
-
-        // TODO need Fact that checks that you cannot add the same email
 
     );
 }

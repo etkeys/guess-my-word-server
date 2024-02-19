@@ -8,6 +8,12 @@ public static class ServiceResults
     public static IServiceResult Created<T>(T data) =>
         new SuccessfulServiceResult<T>(HttpStatusCode.Created, data);
 
+    public static IServiceResult NotFound(string error) =>
+        new ErrorServiceResult(HttpStatusCode.NotFound, error);
+
+    public static IServiceResult Ok<T>(T data) =>
+        new SuccessfulServiceResult<T>(HttpStatusCode.OK, data);
+
     public static IServiceResult UnprocessableEntity(string error) =>
         new ErrorServiceResult(HttpStatusCode.UnprocessableEntity, error);
 }

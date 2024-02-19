@@ -1,5 +1,5 @@
+using System.Net;
 using GmwServer;
-using Moq;
 
 namespace GmwServerTests;
 
@@ -18,12 +18,16 @@ public partial class GameRoomServiceTests
 
         var actor = new GameRoomService(_dbContextFactoryMock.Object);
         var act = await actor.CreateRoom(_roomJoinCodeProviderMock.Object);
-        Assert.NotNull(act);
+
+        Assert.Equal(HttpStatusCode.Created, act.Status);
+        Assert.False(act.IsError);
+        Assert.NotNull(act.GetData());
+        Assert.Null(act.GetError());
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
-        var actRooms = from r in db.Rooms where r.Id == act select r;
-        Assert.True(actRooms.Count() == 1, $"Room with Id '{act}' not found.");
+        var actRooms = from r in db.Rooms where r.Id == ((GameRoomId)act.GetData()!) select r;
+        Assert.Single(actRooms);
 
         var actRoom = actRooms.First();
 

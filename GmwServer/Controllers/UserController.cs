@@ -15,6 +15,8 @@ public class UserController : ControllerBase
 
     [HttpPost("createUser", Name = "CreateUser")]
     [ProducesResponseType(typeof(UserId), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> CreateUser(string? email){
         if (string.IsNullOrWhiteSpace(email))
             return BadRequest("Email address not provided.");

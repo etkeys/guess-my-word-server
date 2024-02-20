@@ -27,4 +27,8 @@
     <ProjectReference Include="..\GmwServer\GmwServer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Tests\Controllers\**\*.cs"/>
+  </ItemGroup>
+
 </Project>

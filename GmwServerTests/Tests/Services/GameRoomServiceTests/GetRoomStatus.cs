@@ -1,5 +1,6 @@
 
 using System.Net;
+using System.Net.Mail;
 using GmwServer;
 
 namespace GmwServerTests;
@@ -49,9 +50,18 @@ public partial class GameRoomServiceTests
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("977e4665-6acb-42c3-9259-93933d2f9290")),
                             JoinCode = new RoomJoinCode("aaaabbbb"),
+                            CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
                             CurrentWord = null,
+
                         },
+                    }},
+                    {"Users", new[] {
+                        new User{
+                            Id = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
+                            Email = new MailAddress("john.doe@example.com"),
+                            DisplayName = "john.doe"
+                        }
                     }}
                 }
             )
@@ -77,15 +87,24 @@ public partial class GameRoomServiceTests
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("977e4665-6acb-42c3-9259-93933d2f9290")),
                             JoinCode = new RoomJoinCode("aaaabbbb"),
+                            CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
                             CurrentWord = null,
                         },
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("0877aa3c-598e-42a2-b3e3-6bea82d42968")),
                             JoinCode = new RoomJoinCode("bbbbaaaa"),
+                            CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
                             CurrentWord = null,
                         },
+                    }},
+                    {"Users", new[] {
+                        new User{
+                            Id = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
+                            Email = new MailAddress("john.doe@example.com"),
+                            DisplayName = "john.doe"
+                        }
                     }}
                 }
             )
@@ -111,15 +130,24 @@ public partial class GameRoomServiceTests
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("977e4665-6acb-42c3-9259-93933d2f9290")),
                             JoinCode = new RoomJoinCode("aaaabbbb"),
+                            CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
                             CurrentWord = null,
                         },
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("0877aa3c-598e-42a2-b3e3-6bea82d42968")),
                             JoinCode = new RoomJoinCode("bbbbaaaa"),
+                            CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
                             CurrentWord = null,
                         },
+                    }},
+                    {"Users", new[] {
+                        new User{
+                            Id = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
+                            Email = new MailAddress("john.doe@example.com"),
+                            DisplayName = "john.doe"
+                        }
                     }}
                 }
             )

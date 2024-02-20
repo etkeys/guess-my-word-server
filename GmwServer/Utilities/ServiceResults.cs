@@ -8,6 +8,9 @@ public static class ServiceResults
     public static IServiceResult Created<T>(T data) =>
         new SuccessfulServiceResult<T>(HttpStatusCode.Created, data);
 
+    public static IServiceResult Forbidden(string error) =>
+        new ErrorServiceResult(HttpStatusCode.Forbidden, error);
+
     public static IServiceResult NotFound(string error) =>
         new ErrorServiceResult(HttpStatusCode.NotFound, error);
 

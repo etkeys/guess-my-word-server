@@ -10,8 +10,16 @@ public class GameRoomService: IGameRoomService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<IServiceResult> CreateRoom(IRoomJoinCodeProvider jcProvider){
+    public async Task<IServiceResult> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider){
         using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        var requestingUser = await
+            (from u in db.Users
+            where u.Id == requestingUserId
+            select u)
+            .FirstOrDefaultAsync();
+        if (requestingUser is null)
+            return ServiceResults.Forbidden("Requesting user is not registered.");
 
         var joinCode = jcProvider.GetRoomJoinCode();
         var inserted = 0;
@@ -36,16 +44,25 @@ public class GameRoomService: IGameRoomService
             }
         }
 
-        var room = new GameRoom{
+        var newRoom = new GameRoom{
             Id = new GameRoomId(Guid.NewGuid()),
             CreatedDate = DateTime.UtcNow,
             JoinCode = joinCode,
+            CreatedByUserId = requestingUser.Id
         };
+        db.Rooms.Add(newRoom);
 
-        db.Rooms.Add(room);
+        var newPlayer = new Player{
+            RoomId = newRoom.Id,
+            UserId = requestingUser.Id,
+            IsAsker = true,
+            RoomJoinTime = newRoom.CreatedDate
+        };
+        db.Players.Add(newPlayer);
+
         await db.SaveChangesAsync();
 
-        return ServiceResults.Created(room.Id);
+        return ServiceResults.Created(newRoom.Id);
     }
 
     public async Task<IServiceResult> GetRoomStatus(GameRoomId id){
@@ -66,7 +83,7 @@ public class GameRoomService: IGameRoomService
 
 public interface IGameRoomService
 {
-    Task<IServiceResult> CreateRoom(IRoomJoinCodeProvider jcProvider);
+    Task<IServiceResult> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
 
     Task<IServiceResult> GetRoomStatus(GameRoomId id);
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using GmwServer;
+using Microsoft.EntityFrameworkCore;
 
 namespace GmwServerTests;
 
@@ -33,19 +34,28 @@ public partial class GameRoomServiceTests
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
-        var actRooms = from r in db.Rooms where r.Id == ((GameRoomId)act.GetData()!) select r;
+        var actRooms = await (from r in db.Rooms where r.Id == ((GameRoomId)act.GetData()!) select r).ToListAsync();
         Assert.Single(actRooms);
 
         var actRoom = actRooms.First();
 
         var expCreatedDate = (DateTime)test.Expected["created date"]!;
-        var expCreatedByUser = (UserId)test.Expected["created by user"]!;
+        var expCreatedByUserId = (UserId)test.Expected["created by user"]!;
         var expJoinCode = (RoomJoinCode)test.Expected["join code"]!;
 
         Assert.Equal(expCreatedDate.Date, actRoom.CreatedDate.Date);
-        Assert.Equal(expCreatedByUser, actRoom.CreatedByUserId);
+        Assert.Equal(expCreatedByUserId, actRoom.CreatedByUserId);
         Assert.Equal(expJoinCode, actRoom.JoinCode);
         Assert.Null(actRoom.CurrentWord);
+
+        var actPlayers = await (from p in db.Players where p.Room == actRoom select p).ToListAsync();
+        Assert.Single(actPlayers);
+
+        var actPlayer = actPlayers.First();
+
+        Assert.Equal(expCreatedByUserId, actPlayer.UserId);
+        Assert.Equal(expCreatedDate.Date, actPlayer.RoomJoinTime.Date);
+        Assert.True(actPlayer.IsAsker);
     }
 
     public static IEnumerable<object[]> CreateRoomTestsData => BundleTestCases(

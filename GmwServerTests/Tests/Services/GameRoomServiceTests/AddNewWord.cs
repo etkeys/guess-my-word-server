@@ -92,6 +92,35 @@ public partial class GameRoomServiceTests
                 })
 
 
+        ,new TestCase("New word added, same word but different room")
+            .WithInput("game room id", new GameRoomId(Guid.Parse("bbb14f6c-53e4-4329-a1ca-8d668d7022ca")))
+            .WithInput("user id", new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")))
+            .WithInput("word", "skill")
+            .WithExpected("active word", "skill")
+            .WithExpected("room word count", 1)
+            .WithExpected(
+                "service result",
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Created)
+                    .WithIsError(false)
+                    .Create())
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]>{
+                    {"RoomWords", new []{
+                        new RoomWord{
+                            LiteralWord = "skill",
+                            RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
+                            AskedByUserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                            AskedDateTime = DateTime.UtcNow,
+                            CompletedDateTime = DateTime.UtcNow.AddSeconds(1)
+                        }
+                    }}
+                })
+
+
+
         ,new TestCase("User is not player in room")
             .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
             .WithInput("user id", new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")))

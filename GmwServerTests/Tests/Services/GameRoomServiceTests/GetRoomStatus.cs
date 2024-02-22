@@ -52,7 +52,6 @@ public partial class GameRoomServiceTests
                             JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
 
                         },
                     }},
@@ -74,7 +73,6 @@ public partial class GameRoomServiceTests
                             Id = new GameRoomId(Guid.Parse("977e4665-6acb-42c3-9259-93933d2f9290")),
                             JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
                         })
                         .Create())
 
@@ -89,14 +87,12 @@ public partial class GameRoomServiceTests
                             JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
                         },
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("0877aa3c-598e-42a2-b3e3-6bea82d42968")),
                             JoinCode = new RoomJoinCode("bbbbaaaa"),
                             CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
                         },
                     }},
                     {"Users", new[] {
@@ -117,7 +113,6 @@ public partial class GameRoomServiceTests
                             Id = new GameRoomId(Guid.Parse("0877aa3c-598e-42a2-b3e3-6bea82d42968")),
                             JoinCode = new RoomJoinCode("bbbbaaaa"),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
                         })
                         .Create())
 
@@ -132,14 +127,12 @@ public partial class GameRoomServiceTests
                             JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
                         },
                         new GameRoom{
                             Id = new GameRoomId(Guid.Parse("0877aa3c-598e-42a2-b3e3-6bea82d42968")),
                             JoinCode = new RoomJoinCode("bbbbaaaa"),
                             CreatedByUserId = new UserId(Guid.Parse("13422776-bc7a-4197-aafe-88f972c6ace8")),
                             CreatedDate = DateTime.UtcNow,
-                            CurrentWord = null,
                         },
                     }},
                     {"Users", new[] {

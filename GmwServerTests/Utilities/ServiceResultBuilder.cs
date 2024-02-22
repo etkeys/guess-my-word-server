@@ -14,17 +14,13 @@ public class ServiceResultBuilder
         _data.Add("is error", false);
     }
 
-    public IServiceResult Create(){
-        var mock = new Mock<IServiceResult>();
-
-        mock.Setup(e => e.IsError).Returns((bool)_data["is error"]!);
-        mock.Setup(e => e.Status).Returns((HttpStatusCode)_data["status"]!);
-
-        mock.Setup(e => e.GetData()).Returns(_data["data"]);
-        mock.Setup(e => e.GetError()).Returns(_data["error"]);
-
-        return mock.Object;
-    }
+    public IServiceResult Create() =>
+        new MockServiceResult{
+            Data = _data["data"],
+            Error = _data["error"],
+            IsError = (bool)_data["is error"]!,
+            Status = (HttpStatusCode)_data["status"]!
+        };
 
     public ServiceResultBuilder WithData(object? newValue, bool updateExclusiveValues = true){
         _data["data"] = newValue;
@@ -58,5 +54,19 @@ public class ServiceResultBuilder
             _data["status"] = newValue;
 
         return this;
+    }
+
+    private class MockServiceResult: IServiceResult
+    {
+        public bool IsError {get; init;}
+        public HttpStatusCode Status {get; init;}
+
+        public object? Data {get; init;}
+
+        public object? Error{get; init;}
+
+        public object? GetData() => Data;
+
+        public object? GetError() => Error;
     }
 }

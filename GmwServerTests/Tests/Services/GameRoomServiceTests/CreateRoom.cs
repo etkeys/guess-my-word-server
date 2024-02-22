@@ -46,7 +46,6 @@ public partial class GameRoomServiceTests
         Assert.Equal(expCreatedDate.Date, actRoom.CreatedDate.Date);
         Assert.Equal(expCreatedByUserId, actRoom.CreatedByUserId);
         Assert.Equal(expJoinCode, actRoom.JoinCode);
-        Assert.Null(actRoom.CurrentWord);
 
         var actPlayers = await (from p in db.Players where p.Room == actRoom select p).ToListAsync();
         Assert.Single(actPlayers);

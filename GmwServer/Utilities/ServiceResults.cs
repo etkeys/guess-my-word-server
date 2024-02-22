@@ -5,6 +5,10 @@ namespace GmwServer;
 
 public static class ServiceResults
 {
+
+    public static IServiceResult Created() =>
+        new SuccessfulServiceResult(HttpStatusCode.Created);
+
     public static IServiceResult Created<T>(T data) =>
         new SuccessfulServiceResult<T>(HttpStatusCode.Created, data);
 
@@ -23,21 +27,36 @@ public static class ServiceResults
 
 public class ErrorServiceResult: IServiceResult
 {
-    private string _error;
 
     public ErrorServiceResult(HttpStatusCode status, string error){
-        _error = error;
+        Error = error;
         Status = status;
     }
 
+    public object Error {get;}
     public bool IsError => true;
 
     public HttpStatusCode Status {get;}
 
     public object? GetData() => null;
 
-    public object? GetError() => _error;
+    public object? GetError() => Error;
 
+}
+
+public class SuccessfulServiceResult: IServiceResult
+{
+    public SuccessfulServiceResult(HttpStatusCode status){
+        Status = status;
+    }
+
+    public bool IsError => false;
+
+    public HttpStatusCode Status {get;}
+
+    public object? GetData() => null;
+
+    public object? GetError() => null;
 }
 
 public class SuccessfulServiceResult<T>: IServiceResult

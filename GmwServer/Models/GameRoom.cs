@@ -12,7 +12,6 @@ public class GameRoom
     public GameRoomId Id {get; init;} = new GameRoomId(Guid.NewGuid());
     public DateTime CreatedDate {get; init;}
     public RoomJoinCode? JoinCode {get; init;}
-    public string? CurrentWord {get; set;}
     public UserId CreatedByUserId {get; init;} = null!;
 
     #region Navigation properties

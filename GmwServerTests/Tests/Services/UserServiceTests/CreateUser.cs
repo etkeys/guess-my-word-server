@@ -1,7 +1,5 @@
 using System.Net.Mail;
-using Moq;
 using GmwServer;
-using System.Net;
 using Microsoft.EntityFrameworkCore;
 
 namespace GmwServerTests;
@@ -30,14 +28,10 @@ public partial class UserServiceTests
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
-        var actEx = await Assert.ThrowsAsync<DbUpdateException>(() => {
-            db.Users.Add(inpUser);
-            return db.SaveChangesAsync();
-        });
-
-        Assert.True(
-            actEx.InnerException!.Message.Contains("UNIQUE constraint failed: Users.Email"),
-            "Database did not produce expected unique constraint violation message.");
+        db.Users.Add(inpUser);
+        db.Invoking(d => d.SaveChanges()).Should().Throw<DbUpdateException>()
+            .WithInnerException<Exception>()
+            .WithMessage("*UNIQUE constraint failed: Users.Email*");
     }
 
     [Theory, MemberData(nameof(CreateUserTestsData))]
@@ -47,37 +41,36 @@ public partial class UserServiceTests
         var inpMailAddress = (MailAddress)test.Inputs["email"]!;
 
         var actor = new UserService(_dbContextFactoryMock.Object);
-        var act = await actor.CreateUser(inpMailAddress);
+        var actServiceResult = await actor.CreateUser(inpMailAddress);
 
-        var exp = (IServiceResult)test.Expected["service result"]!;
+        var expServiceResult = (IServiceResult)test.Expected["service result"]!;
 
-        Assert.Equal(exp.IsError, act.IsError);
-        Assert.Equal(exp.Status, act.Status);
+        actServiceResult.Should().Be(
+            expServiceResult,
+            new ServiceResultEqaulityComparer(
+                dataComparer: (_, y) => {
+                    y.Should().BeOfType<UserId>();
+                    return true;
+                }
+            ));
 
-        if (exp.IsError){
-            Assert.Null(act.GetData());
-            Assert.NotNull(act.GetError());
-            Assert.IsType<string>(act.GetError());
-            Assert.False(string.IsNullOrWhiteSpace((string)act.GetError()!));
+        using var db = new GmwServerDbContext(DefaultDbContextOptions);
+        var actUsers = await
+            (from u in db.Users
+            where u.Id == (UserId)actServiceResult.GetData()!
+            select u)
+            .ToListAsync();
+
+        if (expServiceResult.IsError){
+            actUsers.Should().BeEmpty();
             return;
         }
 
-        Assert.Null(act.GetError());
-        Assert.NotNull(act.GetData());
-        Assert.IsType<UserId>(act.GetData());
-
-        using var db = new GmwServerDbContext(DefaultDbContextOptions);
-
-        var actUsers = await
-            (from u in db.Users
-            where u.Id == (UserId)act.GetData()!
-            select u)
-            .ToListAsync();
-        Assert.Single(actUsers);
-
-        var actUser = actUsers.First();
-        Assert.Equal(inpMailAddress, actUser.Email, MailAddressEqualityComparer.Instance);
-        Assert.Equal(inpMailAddress.User, actUser.DisplayName);
+        actUsers.Should().ContainSingle()
+            .And.AllSatisfy(a => {
+                a.Email.Should().Be(inpMailAddress, MailAddressEqualityComparer.Instance);
+                a.DisplayName.Should().Be(inpMailAddress.User);
+            });
     }
 
     public static IEnumerable<object[]> CreateUserTestsData => BundleTestCases(
@@ -87,6 +80,7 @@ public partial class UserServiceTests
                 "service result",
                 new ServiceResultBuilder()
                     .WithStatus(HttpStatusCode.Created)
+                    .WithData(new UserId(Guid.Empty))
                     .Create())
 
 
@@ -113,6 +107,7 @@ public partial class UserServiceTests
                 "service result",
                 new ServiceResultBuilder()
                     .WithStatus(HttpStatusCode.Created)
+                    .WithData(new UserId(Guid.Empty))
                     .Create())
 
 
@@ -139,7 +134,7 @@ public partial class UserServiceTests
                 "service result",
                 new ServiceResultBuilder()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
-                    .WithIsError(true)
+                    .WithError("Email address already registered.")
                     .Create())
 
 

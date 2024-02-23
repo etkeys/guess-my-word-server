@@ -12,7 +12,7 @@ public partial class RoomCodeIdProviderTests
 
         for(var i = 0; i < 10_000; i++){
             var act = generator.GetRoomJoinCode();
-            Assert.True(set.Add(act), $"Duplicate room code generated: {act}");
+            set.Add(act).Should().BeTrue("because generating room codes should be random enough to not cause collisions.");
         }
     }
 }

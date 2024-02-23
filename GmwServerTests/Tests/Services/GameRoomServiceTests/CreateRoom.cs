@@ -1,7 +1,6 @@
-using System.Net;
 using System.Net.Mail;
-using GmwServer;
 using Microsoft.EntityFrameworkCore;
+using GmwServer;
 
 namespace GmwServerTests;
 
@@ -20,41 +19,47 @@ public partial class GameRoomServiceTests
         _roomJoinCodeProviderMock.Setup(e => e.GetRoomJoinCode()).Returns(() => inpJoinCodes.Dequeue());
 
         var actor = new GameRoomService(_dbContextFactoryMock.Object);
-        var act = await actor.CreateRoom(inpRequestingUserId, _roomJoinCodeProviderMock.Object);
+        var actServiceResult = await actor.CreateRoom(inpRequestingUserId, _roomJoinCodeProviderMock.Object);
 
-        Assert.Equal((HttpStatusCode)test.Expected["status"]!, act.Status);
-        Assert.Equal((bool)test.Expected["is error"]!, act.IsError);
+        var expServiceResult = (IServiceResult)test.Expected["service result"]!;
 
-        if (act.IsError){
-            Assert.Null(act.GetData());
-            Assert.NotNull(act.GetError());
-            Assert.Equal(test.Expected["error"]!, act.GetError());
-            return;
-        }
+        actServiceResult.Should().Be(
+            expServiceResult,
+            new ServiceResultEqaulityComparer(
+                dataComparer: (_, y) => {
+                    y.Should().BeOfType<GameRoomId>();
+                    return true;
+                }
+            ));
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
-        var actRooms = await (from r in db.Rooms where r.Id == ((GameRoomId)act.GetData()!) select r).ToListAsync();
-        Assert.Single(actRooms);
+        var actRooms = await
+            (from r in db.Rooms where r.Id == ((GameRoomId)actServiceResult.GetData()!) select r)
+            .ToListAsync();
 
-        var actRoom = actRooms.First();
+        if (expServiceResult.IsError){
+            actRooms.Should().BeEmpty();
+            return;
+        }
 
-        var expCreatedDate = (DateTime)test.Expected["created date"]!;
-        var expCreatedByUserId = (UserId)test.Expected["created by user"]!;
-        var expJoinCode = (RoomJoinCode)test.Expected["join code"]!;
+        var expRoom = (GameRoom)test.Expected["game room"]!;
 
-        Assert.Equal(expCreatedDate.Date, actRoom.CreatedDate.Date);
-        Assert.Equal(expCreatedByUserId, actRoom.CreatedByUserId);
-        Assert.Equal(expJoinCode, actRoom.JoinCode);
+        actRooms.Should().ContainSingle()
+            .And.AllSatisfy(a => {
+                a.CreatedDate.Should().BeWithin(1.Minutes()).After(expRoom.CreatedDate);
+                a.CreatedByUserId.Should().Be(expRoom.CreatedByUserId);
+                a.JoinCode.Should().Be(expRoom.JoinCode);
+            });
 
-        var actPlayers = await (from p in db.Players where p.Room == actRoom select p).ToListAsync();
-        Assert.Single(actPlayers);
-
-        var actPlayer = actPlayers.First();
-
-        Assert.Equal(expCreatedByUserId, actPlayer.UserId);
-        Assert.Equal(expCreatedDate.Date, actPlayer.RoomJoinTime.Date);
-        Assert.True(actPlayer.IsAsker);
+        (await (from p in db.Players where p.Room == actRooms.First() select p)
+            .ToListAsync())
+            .Should().ContainSingle()
+            .And.AllSatisfy(a => {
+                a.UserId.Should().Be(expRoom.CreatedByUserId);
+                a.RoomJoinTime.Should().BeWithin(1.Minutes()).After(expRoom.CreatedDate);
+                a.IsAsker.Should().BeTrue();
+            });
     }
 
     public static IEnumerable<object[]> CreateRoomTestsData => BundleTestCases(
@@ -73,11 +78,18 @@ public partial class GameRoomServiceTests
             )
             .WithInput("join codes", new [] {"ayVN90if"})
             .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("created date", DateTime.UtcNow)
-            .WithExpected("created by user", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("is error", false)
-            .WithExpected("join code", new RoomJoinCode("ayVN90if"))
-            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected(
+                "service result",
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Created)
+                    .WithData(new GameRoomId(Guid.Empty))
+                    .Create())
+            .WithExpected("game room", new GameRoom{
+                Id = new GameRoomId(Guid.Empty),
+                CreatedByUserId = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                CreatedDate = DateTime.UtcNow,
+                JoinCode = new RoomJoinCode("ayVN90if")
+            })
 
 
         ,new TestCase("First join code already exists")
@@ -96,11 +108,18 @@ public partial class GameRoomServiceTests
             })
             .WithInput("join codes", new [] {"ayVN90if", "t918dhbE"})
             .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("created date", DateTime.UtcNow)
-            .WithExpected("created by user", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("is error", false)
-            .WithExpected("join code", new RoomJoinCode("t918dhbE"))
-            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected(
+                "service result",
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Created)
+                    .WithData(new GameRoomId(Guid.Empty))
+                    .Create())
+            .WithExpected("game room", new GameRoom{
+                Id = new GameRoomId(Guid.Empty),
+                CreatedByUserId = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                CreatedDate = DateTime.UtcNow,
+                JoinCode = new RoomJoinCode("t918dhbE")
+            })
 
 
         ,new TestCase("First join and second code already exists")
@@ -120,18 +139,28 @@ public partial class GameRoomServiceTests
             })
             .WithInput("join codes", new [] {"ayVN90if", "t918dhbE", "7agtu991"})
             .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("created date", DateTime.UtcNow)
-            .WithExpected("created by user", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("is error", false)
-            .WithExpected("join code", new RoomJoinCode("7agtu991"))
-            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected(
+                "service result",
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Created)
+                    .WithData(new GameRoomId(Guid.Empty))
+                    .Create())
+            .WithExpected("game room", new GameRoom{
+                Id = new GameRoomId(Guid.Empty),
+                CreatedByUserId = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                CreatedDate = DateTime.UtcNow,
+                JoinCode = new RoomJoinCode("7agtu991")
+            })
 
 
         ,new TestCase("Requesting user does not exist")
             .WithInput("join codes", new [] {"ayVN90if"})
             .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
-            .WithExpected("is error", true)
-            .WithExpected("error", "Requesting user is not registered.")
-            .WithExpected("status", HttpStatusCode.Forbidden)
+            .WithExpected(
+                "service result",
+                new ServiceResultBuilder()
+                    .WithStatus(HttpStatusCode.Forbidden)
+                    .WithError("Requesting user is not registered.")
+                    .Create())
     );
 }

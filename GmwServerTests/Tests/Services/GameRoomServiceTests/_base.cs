@@ -1,7 +1,5 @@
 
 using GmwServer;
-using Microsoft.EntityFrameworkCore;
-using Moq;
 
 namespace GmwServerTests;
 

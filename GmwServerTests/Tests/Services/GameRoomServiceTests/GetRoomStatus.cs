@@ -1,5 +1,4 @@
 
-using System.Net;
 using System.Net.Mail;
 using GmwServer;
 
@@ -19,26 +18,25 @@ public partial class GameRoomServiceTests
 
         var exp = (IServiceResult)testCase.Expected["service result"]!;
 
-        Assert.Equal(exp.IsError, act.IsError);
-        Assert.Equal(exp.Status, act.Status);
+        act.Status.Should().Be(exp.Status);
+        act.IsError.Should().Be(exp.IsError);
 
         if (act.IsError){
-            Assert.Null(act.GetData());
-            Assert.NotNull(act.GetError());
-            Assert.IsType<string>(act.GetError());
-            Assert.False(string.IsNullOrWhiteSpace((string)act.GetError()!));
+            act.GetData().Should().BeNull();
+            act.GetError().Should().NotBeNull()
+                .And.BeOfType<string>();
+            ((string)act.GetError()!).Should().NotBeNullOrWhiteSpace();
             return;
         }
-
-        Assert.Null(act.GetError());
-        Assert.NotNull(act.GetData());
-        Assert.IsType<GameRoom>(act.GetData());
 
         // Don't need to test any further than ID because
         // we are insterting the record...If we don't get
         // the same ID then the rest of the properties are
         // not going to matter.
-        Assert.Equal(((GameRoom)exp.GetData()!).Id, ((GameRoom)act.GetData()!).Id);
+        act.GetError().Should().BeNull();
+        act.GetData().Should().NotBeNull()
+            .And.BeOfType<GameRoom>();
+        ((GameRoom)act.GetData()!).Id.Should().Be(((GameRoom)exp.GetData()!).Id);
     }
 
     public static IEnumerable<object[]> GetRoomStatusTestsData => BundleTestCases(

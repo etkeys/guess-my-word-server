@@ -1,6 +1,4 @@
 
-using System.Net;
-using System.Net.Mail;
 using GmwServer;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,7 +23,7 @@ public partial class GameRoomServiceTests
         var expRoomWordCount = (int)test.Expected["room word count"]!;
         var expActiveWord = (string)test.Expected["active word"]!;
 
-        Assert.Equal(expServiceResult, actServiceResult, new ServiceResultEqaulityComparer());
+        actServiceResult.Should().Be(expServiceResult, new ServiceResultEqaulityComparer());
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
@@ -35,17 +33,19 @@ public partial class GameRoomServiceTests
             select rw)
             .ToListAsync();
 
-        Assert.Equal(expRoomWordCount, roomWords.Count());
+        roomWords.Should().HaveCount(expRoomWordCount);
         if (expRoomWordCount < 1) return;
 
         var roomActiveWord = from w in roomWords where w.CompletedDateTime == null select w;
         if (expActiveWord is null)
-            Assert.Empty(roomActiveWord);
-        else{
-            Assert.Single(roomActiveWord);
-            Assert.Equal(expActiveWord, roomActiveWord.First().LiteralWord);
-            Assert.Equal(inpUserId, roomActiveWord.First().AskedByUserId);
-        }
+            roomActiveWord.Should().BeEmpty();
+
+        else
+            roomActiveWord.Should().ContainSingle()
+                .And.AllSatisfy(a => {
+                    a.LiteralWord.Should().Be(expActiveWord);
+                    a.AskedByUserId.Should().Be(inpUserId);
+                });
     }
 
     public static IEnumerable<object[]> AddNewWordTestsData => BundleTestCases(

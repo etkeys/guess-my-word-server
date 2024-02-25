@@ -21,21 +21,18 @@ public partial class GameRoomServiceTests
         var actor = new GameRoomService(_dbContextFactoryMock.Object);
         var actServiceResult = await actor.CreateRoom(inpRequestingUserId, _roomJoinCodeProviderMock.Object);
 
-        var expServiceResult = (IServiceResult)test.Expected["service result"]!;
+        var expServiceResult = (IServiceResult<GameRoomId>)test.Expected["service result"]!;
 
         actServiceResult.Should().Be(
             expServiceResult,
-            new ServiceResultEqaulityComparer(
-                dataComparer: (_, y) => {
-                    y.Should().BeOfType<GameRoomId>();
-                    return true;
-                }
+            new ServiceResultEqaulityComparer<GameRoomId>(
+                dataComparer: (_, y) => true
             ));
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
         var actRooms = await
-            (from r in db.Rooms where r.Id == ((GameRoomId)actServiceResult.GetData()!) select r)
+            (from r in db.Rooms where r.Id == actServiceResult.Data! select r)
             .ToListAsync();
 
         if (expServiceResult.IsError){
@@ -80,7 +77,7 @@ public partial class GameRoomServiceTests
             .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<GameRoomId>()
                     .WithStatus(HttpStatusCode.Created)
                     .WithData(new GameRoomId(Guid.Empty))
                     .Create())
@@ -110,7 +107,7 @@ public partial class GameRoomServiceTests
             .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<GameRoomId>()
                     .WithStatus(HttpStatusCode.Created)
                     .WithData(new GameRoomId(Guid.Empty))
                     .Create())
@@ -141,7 +138,7 @@ public partial class GameRoomServiceTests
             .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<GameRoomId>()
                     .WithStatus(HttpStatusCode.Created)
                     .WithData(new GameRoomId(Guid.Empty))
                     .Create())
@@ -158,7 +155,7 @@ public partial class GameRoomServiceTests
             .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<GameRoomId>()
                     .WithStatus(HttpStatusCode.Forbidden)
                     .WithError("Requesting user is not registered.")
                     .Create())

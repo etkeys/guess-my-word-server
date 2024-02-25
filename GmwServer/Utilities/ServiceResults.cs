@@ -5,83 +5,68 @@ namespace GmwServer;
 
 public static class ServiceResults
 {
+    public static IServiceResult<T> Created<T>(T data) =>
+        new ConcreteObjectServiceResult<T>(data, HttpStatusCode.Created);
 
-    public static IServiceResult Created() =>
-        new SuccessfulServiceResult(HttpStatusCode.Created);
+    public static IServiceResult<T> Forbidden<T>(string error) =>
+        new ConcreteObjectServiceResult<T>(HttpStatusCode.Forbidden, error);
 
-    public static IServiceResult Created<T>(T data) =>
-        new SuccessfulServiceResult<T>(HttpStatusCode.Created, data);
+    public static IServiceResult<T> NotFound<T>(string error) =>
+        new ConcreteObjectServiceResult<T>(HttpStatusCode.NotFound, error);
 
-    public static IServiceResult Forbidden(string error) =>
-        new ErrorServiceResult(HttpStatusCode.Forbidden, error);
+    public static IServiceResult<T> Ok<T>(T data) =>
+        new ConcreteObjectServiceResult<T>(data, HttpStatusCode.OK);
 
-    public static IServiceResult NotFound(string error) =>
-        new ErrorServiceResult(HttpStatusCode.NotFound, error);
+    public static IServiceResult<T> UnprocessableEntity<T>(string error) =>
+        new ConcreteObjectServiceResult<T>(HttpStatusCode.UnprocessableEntity, error);
 
-    public static IServiceResult Ok<T>(T data) =>
-        new SuccessfulServiceResult<T>(HttpStatusCode.OK, data);
+    private class ConcreteServiceResult: IServiceResult
+    {
+        public ConcreteServiceResult(HttpStatusCode status){
+            IsError = false;
+            Status = status;
+        }
 
-    public static IServiceResult UnprocessableEntity(string error) =>
-        new ErrorServiceResult(HttpStatusCode.UnprocessableEntity, error);
-}
+        public ConcreteServiceResult(HttpStatusCode status, string error){
+            Error = error;
+            IsError = true;
+            Status = status;
+        }
 
-public class ErrorServiceResult: IServiceResult
-{
-
-    public ErrorServiceResult(HttpStatusCode status, string error){
-        Error = error;
-        Status = status;
+        public string? Error {get;}
+        public bool IsError {get;}
+        public HttpStatusCode Status {get;}
     }
 
-    public object Error {get;}
-    public bool IsError => true;
+    private class ConcreteObjectServiceResult<T> : IServiceResult<T>
+    {
+        public ConcreteObjectServiceResult(T data, HttpStatusCode status){
+            Data = data;
+            Error = null;
+            Status = status;
+        }
 
-    public HttpStatusCode Status {get;}
-
-    public object? GetData() => null;
-
-    public object? GetError() => Error;
-
-}
-
-public class SuccessfulServiceResult: IServiceResult
-{
-    public SuccessfulServiceResult(HttpStatusCode status){
-        Status = status;
+        public ConcreteObjectServiceResult(HttpStatusCode status, string error){
+            Data = default(T);
+            Error = error;
+            Status = status;
+        }
+        public T? Data {get;}
+        public string? Error {get;}
+        public bool IsError => !string.IsNullOrWhiteSpace(Error);
+        public HttpStatusCode Status {get;}
     }
-
-    public bool IsError => false;
-
-    public HttpStatusCode Status {get;}
-
-    public object? GetData() => null;
-
-    public object? GetError() => null;
 }
 
-public class SuccessfulServiceResult<T>: IServiceResult
-{
-    private readonly T _data;
-    public SuccessfulServiceResult(HttpStatusCode status, T data){
-        _data = data;
-        Status = status;
-    }
-    public bool IsError => false;
-
-    public HttpStatusCode Status {get;}
-
-    public object? GetData() => _data;
-
-    public object? GetError() => null;
-
-}
 
 public interface IServiceResult
 {
+    string? Error {get;}
     bool IsError {get;}
     HttpStatusCode Status{get;}
+}
 
-    object? GetError();
-
-    object? GetData();
+public interface IServiceResult<T>: IServiceResult
+{
+    T? Data {get;}
 }

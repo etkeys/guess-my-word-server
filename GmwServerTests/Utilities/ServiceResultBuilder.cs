@@ -5,7 +5,7 @@ using GmwServer;
 
 namespace GmwServerTests;
 
-public class ServiceResultBuilder
+public class ServiceResultBuilder<T>
 {
     private readonly Dictionary<string, object?> _data = new();
     public ServiceResultBuilder(){
@@ -14,15 +14,15 @@ public class ServiceResultBuilder
         _data.Add("is error", false);
     }
 
-    public IServiceResult Create() =>
+    public IServiceResult<T> Create() =>
         new MockServiceResult{
-            Data = _data["data"],
-            Error = _data["error"],
+            Data = (T)_data["data"]!,
+            Error = (string)_data["error"]!,
             IsError = (bool)_data["is error"]!,
             Status = (HttpStatusCode)_data["status"]!
         };
 
-    public ServiceResultBuilder WithData(object? newValue, bool updateExclusiveValues = true){
+    public ServiceResultBuilder<T> WithData(object? newValue, bool updateExclusiveValues = true){
         _data["data"] = newValue;
 
         if (updateExclusiveValues){
@@ -33,7 +33,7 @@ public class ServiceResultBuilder
         return this;
     }
 
-    public ServiceResultBuilder WithError(object? newValue, bool updateExclusiveValues = true){
+    public ServiceResultBuilder<T> WithError(object? newValue, bool updateExclusiveValues = true){
         _data["error"] = newValue;
 
         if (updateExclusiveValues){
@@ -44,29 +44,24 @@ public class ServiceResultBuilder
         return this;
     }
 
-    public ServiceResultBuilder WithIsError(bool newValue){
+    public ServiceResultBuilder<T> WithIsError(bool newValue){
         _data["is error"] = newValue;
         return this;
     }
 
-    public ServiceResultBuilder WithStatus(HttpStatusCode newValue){
+    public ServiceResultBuilder<T> WithStatus(HttpStatusCode newValue){
         if (!_data.TryAdd("status", newValue))
             _data["status"] = newValue;
 
         return this;
     }
 
-    private class MockServiceResult: IServiceResult
+
+    private class MockServiceResult: IServiceResult<T>
     {
+        public T? Data {get; init;}
+        public string? Error {get; init;}
         public bool IsError {get; init;}
         public HttpStatusCode Status {get; init;}
-
-        public object? Data {get; init;}
-
-        public object? Error{get; init;}
-
-        public object? GetData() => Data;
-
-        public object? GetError() => Error;
     }
 }

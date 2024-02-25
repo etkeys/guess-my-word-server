@@ -4,76 +4,54 @@ using GmwServer;
 
 namespace GmwServerTests;
 
-public class ServiceResultEqaulityComparer : IEqualityComparer<IServiceResult>
+
+public class ServiceResultEqaulityComparer<T>: IEqualityComparer<IServiceResult<T>>
 {
-    [Flags]
-    public enum CompareAttributes
-    {
-        None = 0,
-        Data = 1,
-        Error = 2,
-        IsError = 4,
-        Status = 8,
+    public delegate bool OverrideDataComparer(T x, T y);
+    public delegate bool OverrideErrorComparer(string x, string y);
 
-        All = Data | Error | IsError | Status
-    }
-
-    public delegate bool OverrideComparer(object x, object y);
-    private readonly OverrideComparer? _dataComparer;
-    private readonly OverrideComparer? _errorComparer;
-    private readonly CompareAttributes _toCompare;
-
+    private readonly OverrideDataComparer? _dataComparer;
+    private readonly OverrideErrorComparer? _errorComparer;
     public ServiceResultEqaulityComparer(
-        CompareAttributes toCompare = CompareAttributes.All,
-        OverrideComparer? dataComparer = null,
-        OverrideComparer? errorComparer = null) {
+        OverrideDataComparer? dataComparer = null,
+        OverrideErrorComparer? errorComparer = null) {
             _dataComparer = dataComparer;
             _errorComparer = errorComparer;
-            _toCompare = toCompare;
         }
 
-    public bool Equals(IServiceResult? x, IServiceResult? y)
-    {
+    public bool Equals(IServiceResult<T>? x, IServiceResult<T>? y){
         if (x is null && y is null) return true;
         if (x is null || y is null) return false;
 
-        if (_toCompare.HasFlag(CompareAttributes.Status) && x.Status != y.Status) return false;
-        if (_toCompare.HasFlag(CompareAttributes.IsError) && x.IsError != y.IsError) return false;
+        if (x.Status != y.Status) return false;
+        if (x.IsError != y.IsError) return false;
 
-        if (_toCompare.HasFlag(CompareAttributes.Error)){
-            if (x.GetError() is null ^ y.GetError() is null) return false;
-            var xError = x.GetError();
-            var yError = y.GetError();
-            var errorResult =
-                (xError is null && yError is null)
-                || (_errorComparer?.Invoke(xError!, yError!) ?? xError!.Equals(yError!));
 
-            if (!errorResult) return false;
-        }
+        if (x.Error is null ^ y.Error is null) return false;
+        var errorResult =
+            (x.Error is null && y.Error is null)
+            || (_errorComparer?.Invoke(x.Error!, y.Error!) ?? x.Error!.Equals(y.Error!));
+        if (!errorResult) return false;
 
-        if (_toCompare.HasFlag(CompareAttributes.Data)){
-            if (x.GetData() is null ^ y.GetData() is null) return false;
-            var xData = x.GetData();
-            var yData = y.GetData();
-            var dataResult =
-                (xData is null && yData is null)
-                || (_dataComparer?.Invoke(xData!, yData!) ?? xData!.Equals(yData!));
 
-            if (!dataResult) return false;
-        }
+        if (x.Data is null ^ y.Data is null) return false;
+        var dataResult =
+            (x.Data is null && y.Data is null)
+            || (_dataComparer?.Invoke(x.Data!, y.Data!) ?? x.Data!.Equals(y.Data!));
+        if (!dataResult) return false;
 
         return true;
     }
 
-    public int GetHashCode([DisallowNull] IServiceResult obj)
-    {
+    public int GetHashCode([DisallowNull] IServiceResult<T> obj){
         unchecked{
             int hash = 999331;
             hash = hash * 331999 + obj.IsError.GetHashCode();
             hash = hash * 331999 + obj.Status.GetHashCode();
-            hash = hash * 331999 + obj.GetError()?.GetHashCode() ?? 0;
-            hash = hash * 331999 + obj.GetData()?.GetHashCode() ?? 0;
+            hash = hash * 331999 + obj.Error?.GetHashCode() ?? 0;
+            hash = hash * 331999 + obj.Data?.GetHashCode() ?? 0;
             return hash;
         }
     }
+
 }

@@ -10,16 +10,16 @@ public class GameRoomService: IGameRoomService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<IServiceResult> AddNewWord(GameRoomId roomId, UserId userId, string newWord){
+    public async Task<IServiceResult<RoomWord>> AddNewWord(GameRoomId roomId, UserId userId, string newWord){
         // TODO Controller must validation that word is not null or whitespace
 
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         if (!await IsUserRoomAsker(db, roomId, userId))
-            return ServiceResults.UnprocessableEntity("User is not the current asker.");
+            return ServiceResults.UnprocessableEntity<RoomWord>("User is not the current asker.");
 
         if (await RoomHasActiveWord(db, roomId))
-            return ServiceResults.UnprocessableEntity("Room already has an active word.");
+            return ServiceResults.UnprocessableEntity<RoomWord>("Room already has an active word.");
 
         // Word must be in the known word list
         // Word must not have been used in this room before
@@ -36,7 +36,7 @@ public class GameRoomService: IGameRoomService
             .AnyAsync();
 
         if (!isWordUsable)
-            return ServiceResults.UnprocessableEntity($"Provided word, '{newWord}', cannot be used.");
+            return ServiceResults.UnprocessableEntity<RoomWord>($"Provided word, '{newWord}', cannot be used.");
 
         // TODO Word must not be in global exclusion list (WordsGlobalForbidden)
         // TODO Word must not be in room exclusion list (WordsRoomForbidden)
@@ -54,10 +54,10 @@ public class GameRoomService: IGameRoomService
 
         await db.SaveChangesAsync();
 
-        return ServiceResults.Created();
+        return ServiceResults.Created(newUsedWord);
     }
 
-    public async Task<IServiceResult> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider){
+    public async Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider){
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         var requestingUser = await
@@ -66,7 +66,7 @@ public class GameRoomService: IGameRoomService
             select u)
             .FirstOrDefaultAsync();
         if (requestingUser is null)
-            return ServiceResults.Forbidden("Requesting user is not registered.");
+            return ServiceResults.Forbidden<GameRoomId>("Requesting user is not registered.");
 
         var joinCode = jcProvider.GetRoomJoinCode();
         var inserted = 0;
@@ -111,7 +111,7 @@ public class GameRoomService: IGameRoomService
         return ServiceResults.Created(newRoom.Id);
     }
 
-    public async Task<IServiceResult> GetRoomStatus(GameRoomId id){
+    public async Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id){
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         var result = await
@@ -122,7 +122,7 @@ public class GameRoomService: IGameRoomService
 
         return result is not null
             ? ServiceResults.Ok(result)
-            : ServiceResults.NotFound($"Could not find room with id '{id.Value}'.");
+            : ServiceResults.NotFound<GameRoom>($"Could not find room with id '{id.Value}'.");
     }
 
     private Task<bool> IsUserRoomAsker(GmwServerDbContext db, GameRoomId roomId, UserId userId) =>
@@ -148,8 +148,8 @@ public class GameRoomService: IGameRoomService
 
 public interface IGameRoomService
 {
-    Task<IServiceResult> AddNewWord(GameRoomId roomId, UserId userId, string newCurrentWord);
-    Task<IServiceResult> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
-    Task<IServiceResult> GetRoomStatus(GameRoomId id);
+    Task<IServiceResult<RoomWord>> AddNewWord(GameRoomId roomId, UserId userId, string newCurrentWord);
+    Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
+    Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id);
 
 }

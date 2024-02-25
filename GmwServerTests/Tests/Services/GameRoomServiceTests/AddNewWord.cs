@@ -19,11 +19,13 @@ public partial class GameRoomServiceTests
         var actor = new GameRoomService(_dbContextFactoryMock.Object);
         var actServiceResult = await actor.AddNewWord(inpRoomId, inpUserId, inpNewWord);
 
-        var expServiceResult = (IServiceResult)test.Expected["service result"]!;
+        var expServiceResult = (IServiceResult<RoomWord>)test.Expected["service result"]!;
         var expRoomWordCount = (int)test.Expected["room word count"]!;
         var expActiveWord = (string)test.Expected["active word"]!;
 
-        actServiceResult.Should().Be(expServiceResult, new ServiceResultEqaulityComparer());
+        actServiceResult.Should().Be(expServiceResult, new ServiceResultEqaulityComparer<RoomWord>(
+            dataComparer: (_, _) => true
+        ));
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
@@ -57,9 +59,14 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 1)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.Created)
-                    .WithIsError(false)
+                    .WithData(new RoomWord{
+                        LiteralWord = "skill",
+                        RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                        AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                        AskedDateTime = DateTime.UtcNow,
+                    })
                     .Create())
             .WithSetup("database", BasicTestData)
 
@@ -72,9 +79,14 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 2)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.Created)
-                    .WithIsError(false)
+                    .WithData(new RoomWord{
+                        LiteralWord = "media",
+                        RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                        AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                        AskedDateTime = DateTime.UtcNow,
+                    })
                     .Create())
             .WithSetup("database", BasicTestData)
             .WithSetup(
@@ -100,9 +112,14 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 1)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.Created)
-                    .WithIsError(false)
+                    .WithData(new RoomWord{
+                        LiteralWord = "skill",
+                        RoomId = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
+                        AskedByUserId = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
+                        AskedDateTime = DateTime.UtcNow,
+                    })
                     .Create())
             .WithSetup("database", BasicTestData)
             .WithSetup(
@@ -128,7 +145,7 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 0)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
                     .WithError("User is not the current asker.")
                     .Create())
@@ -143,7 +160,7 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 0)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
                     .WithError("User is not the current asker.")
                     .Create())
@@ -158,7 +175,7 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 1)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
                     .WithError("Room already has an active word.")
                     .Create())
@@ -185,7 +202,7 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 0)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
                     .WithError("Provided word, 'foo', cannot be used.")
                     .Create())
@@ -200,7 +217,7 @@ public partial class GameRoomServiceTests
             .WithExpected("room word count", 1)
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<RoomWord>()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
                     .WithError("Provided word, 'skill', cannot be used.")
                     .Create())

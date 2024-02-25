@@ -13,7 +13,7 @@ public class UserService: IUserService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<IServiceResult> CreateUser(MailAddress email){
+    public async Task<IServiceResult<UserId>> CreateUser(MailAddress email){
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         var emailAlreadyUsed = await
@@ -23,7 +23,7 @@ public class UserService: IUserService
             .AnyAsync();
 
         if (emailAlreadyUsed)
-            return ServiceResults.UnprocessableEntity("Email address already registered.");
+            return ServiceResults.UnprocessableEntity<UserId>("Email address already registered.");
 
         var newUser = new User{
             Email = email,
@@ -40,5 +40,5 @@ public class UserService: IUserService
 
 public interface IUserService
 {
-    Task<IServiceResult> CreateUser(MailAddress email);
+    Task<IServiceResult<UserId>> CreateUser(MailAddress email);
 }

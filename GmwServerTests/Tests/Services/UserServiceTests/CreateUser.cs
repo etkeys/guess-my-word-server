@@ -43,21 +43,18 @@ public partial class UserServiceTests
         var actor = new UserService(_dbContextFactoryMock.Object);
         var actServiceResult = await actor.CreateUser(inpMailAddress);
 
-        var expServiceResult = (IServiceResult)test.Expected["service result"]!;
+        var expServiceResult = (IServiceResult<UserId>)test.Expected["service result"]!;
 
         actServiceResult.Should().Be(
             expServiceResult,
-            new ServiceResultEqaulityComparer(
-                dataComparer: (_, y) => {
-                    y.Should().BeOfType<UserId>();
-                    return true;
-                }
+            new ServiceResultEqaulityComparer<UserId>(
+                dataComparer: (_, _) => true
             ));
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
         var actUsers = await
             (from u in db.Users
-            where u.Id == (UserId)actServiceResult.GetData()!
+            where u.Id == actServiceResult.Data!
             select u)
             .ToListAsync();
 
@@ -78,7 +75,7 @@ public partial class UserServiceTests
             .WithInput("email", new MailAddress("john.doe@example.com"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<UserId>()
                     .WithStatus(HttpStatusCode.Created)
                     .WithData(new UserId(Guid.Empty))
                     .Create())
@@ -105,7 +102,7 @@ public partial class UserServiceTests
             .WithInput("email", new MailAddress("john.doe@example.com"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<UserId>()
                     .WithStatus(HttpStatusCode.Created)
                     .WithData(new UserId(Guid.Empty))
                     .Create())
@@ -132,7 +129,7 @@ public partial class UserServiceTests
             .WithInput("email", new MailAddress("john.doe@somesite.com"))
             .WithExpected(
                 "service result",
-                new ServiceResultBuilder()
+                new ServiceResultBuilder<UserId>()
                     .WithStatus(HttpStatusCode.UnprocessableEntity)
                     .WithError("Email address already registered.")
                     .Create())

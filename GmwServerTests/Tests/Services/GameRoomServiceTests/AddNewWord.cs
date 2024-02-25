@@ -50,8 +50,8 @@ public partial class GameRoomServiceTests
 
     public static IEnumerable<object[]> AddNewWordTestsData => BundleTestCases(
         new TestCase("New word added")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "skill")
             .WithExpected("active word", "skill")
             .WithExpected("room word count", 1)
@@ -65,8 +65,8 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("New word added, room has no active word")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "media")
             .WithExpected("active word", "media")
             .WithExpected("room word count", 2)
@@ -83,8 +83,8 @@ public partial class GameRoomServiceTests
                     {"RoomWords", new []{
                         new RoomWord{
                             LiteralWord = "skill",
-                            RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                            AskedByUserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                             AskedDateTime = DateTime.UtcNow,
                             CompletedDateTime = DateTime.UtcNow.AddSeconds(1)
                         }
@@ -93,8 +93,8 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("New word added, same word but different room")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bbb14f6c-53e4-4329-a1ca-8d668d7022ca")))
-            .WithInput("user id", new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")))
+            .WithInput("game room id", GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"))
+            .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
             .WithInput("word", "skill")
             .WithExpected("active word", "skill")
             .WithExpected("room word count", 1)
@@ -111,8 +111,8 @@ public partial class GameRoomServiceTests
                     {"RoomWords", new []{
                         new RoomWord{
                             LiteralWord = "skill",
-                            RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                            AskedByUserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                             AskedDateTime = DateTime.UtcNow,
                             CompletedDateTime = DateTime.UtcNow.AddSeconds(1)
                         }
@@ -120,10 +120,9 @@ public partial class GameRoomServiceTests
                 })
 
 
-
         ,new TestCase("User is not player in room")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
             .WithInput("word", "media")
             .WithExpected("active word", null)
             .WithExpected("room word count", 0)
@@ -137,8 +136,8 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("User is not the current asker")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
             .WithInput("word", "media")
             .WithExpected("active word", null)
             .WithExpected("room word count", 0)
@@ -152,8 +151,8 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("Room already has an acive word")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "media")
             .WithExpected("active word", "skill")
             .WithExpected("room word count", 1)
@@ -170,8 +169,8 @@ public partial class GameRoomServiceTests
                     {"RoomWords", new []{
                         new RoomWord{
                             LiteralWord = "skill",
-                            RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                            AskedByUserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                             AskedDateTime = DateTime.UtcNow,
                         }
                     }}
@@ -179,8 +178,8 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("Word is not in the word list")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "foo")
             .WithExpected("active word", null)
             .WithExpected("room word count", 0)
@@ -194,8 +193,8 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("Word has been asked previously")
-            .WithInput("game room id", new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")))
-            .WithInput("user id", new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")))
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "skill")
             .WithExpected("active word", null)
             .WithExpected("room word count", 1)
@@ -212,8 +211,8 @@ public partial class GameRoomServiceTests
                     {"RoomWords", new []{
                         new RoomWord{
                             LiteralWord = "skill",
-                            RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                            AskedByUserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                             AskedDateTime = DateTime.UtcNow,
                             CompletedDateTime = DateTime.UtcNow.AddSeconds(1)
                         }

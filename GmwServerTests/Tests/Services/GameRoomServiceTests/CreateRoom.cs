@@ -69,7 +69,7 @@ public partial class GameRoomServiceTests
                 new Dictionary<string, object[]> {
                     {"Users", new[]{
                         new User{
-                            Id = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                            Id = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
                             Email = new MailAddress("john.doe@example.com"),
                             DisplayName = "john.doe"
                         }
@@ -77,7 +77,7 @@ public partial class GameRoomServiceTests
                 }
             )
             .WithInput("join codes", new [] {"ayVN90if"})
-            .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
+            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
                 new ServiceResultBuilder()
@@ -86,7 +86,7 @@ public partial class GameRoomServiceTests
                     .Create())
             .WithExpected("game room", new GameRoom{
                 Id = new GameRoomId(Guid.Empty),
-                CreatedByUserId = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                CreatedByUserId = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
                 CreatedDate = DateTime.UtcNow,
                 JoinCode = new RoomJoinCode("ayVN90if")
             })
@@ -100,14 +100,14 @@ public partial class GameRoomServiceTests
                         new JoinCode{Id = new RoomJoinCode("ayVN90if")}}},
                     {"Users", new[]{
                         new User{
-                            Id = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                            Id = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
                             Email = new MailAddress("john.doe@example.com"),
                             DisplayName = "john.doe"
                         }
                     }},
             })
             .WithInput("join codes", new [] {"ayVN90if", "t918dhbE"})
-            .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
+            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
                 new ServiceResultBuilder()
@@ -116,7 +116,7 @@ public partial class GameRoomServiceTests
                     .Create())
             .WithExpected("game room", new GameRoom{
                 Id = new GameRoomId(Guid.Empty),
-                CreatedByUserId = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                CreatedByUserId = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
                 CreatedDate = DateTime.UtcNow,
                 JoinCode = new RoomJoinCode("t918dhbE")
             })
@@ -131,14 +131,14 @@ public partial class GameRoomServiceTests
                         new JoinCode{Id = new RoomJoinCode("t918dhbE")}}},
                     {"Users", new[]{
                         new User{
-                            Id = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                            Id = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
                             Email = new MailAddress("john.doe@example.com"),
                             DisplayName = "john.doe"
                         }
                     }},
             })
             .WithInput("join codes", new [] {"ayVN90if", "t918dhbE", "7agtu991"})
-            .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
+            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
                 new ServiceResultBuilder()
@@ -147,7 +147,7 @@ public partial class GameRoomServiceTests
                     .Create())
             .WithExpected("game room", new GameRoom{
                 Id = new GameRoomId(Guid.Empty),
-                CreatedByUserId = new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")),
+                CreatedByUserId = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
                 CreatedDate = DateTime.UtcNow,
                 JoinCode = new RoomJoinCode("7agtu991")
             })
@@ -155,7 +155,7 @@ public partial class GameRoomServiceTests
 
         ,new TestCase("Requesting user does not exist")
             .WithInput("join codes", new [] {"ayVN90if"})
-            .WithInput("requesting user id", new UserId(Guid.Parse("ce568790-e5ae-4b9a-9afd-089703d71b2a")))
+            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
             .WithExpected(
                 "service result",
                 new ServiceResultBuilder()

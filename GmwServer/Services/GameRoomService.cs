@@ -92,7 +92,6 @@ public class GameRoomService: IGameRoomService
         }
 
         var newRoom = new GameRoom{
-            Id = new GameRoomId(Guid.NewGuid()),
             CreatedDate = DateTime.UtcNow,
             JoinCode = joinCode,
             CreatedByUserId = requestingUser.Id

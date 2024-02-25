@@ -20,50 +20,50 @@ public class BaseTests: IDisposable
             }},
             {"Rooms", new [] {
                 new GameRoom{
-                    Id = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                    CreatedByUserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                    Id = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                    CreatedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                     CreatedDate = DateTime.UtcNow,
                     JoinCode = new RoomJoinCode("aaaabbbb"),
                 },
                 new GameRoom{
-                    Id = new GameRoomId(Guid.Parse("bbb14f6c-53e4-4329-a1ca-8d668d7022ca")),
-                    CreatedByUserId = new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")),
+                    Id = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
+                    CreatedByUserId = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
                     CreatedDate = DateTime.UtcNow,
                     JoinCode = new RoomJoinCode("aaaabbba"),
                 },
             }},
             {"Players", new [] {
                 new Player{
-                    RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                    UserId = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                    RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                    UserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                     RoomJoinTime = DateTime.UtcNow,
                     IsAsker = true
                 },
                 new Player{
-                    RoomId = new GameRoomId(Guid.Parse("bc428470-1c15-4822-880b-f90965036ae2")),
-                    UserId = new UserId(Guid.Parse("1fce0ea5-5736-454d-a3b3-30ca9b163bce")),
+                    RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                    UserId = UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"),
                     RoomJoinTime = DateTime.UtcNow.AddMinutes(1),
                 },
                 new Player{
-                    RoomId = new GameRoomId(Guid.Parse("bbb14f6c-53e4-4329-a1ca-8d668d7022ca")),
-                    UserId = new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")),
+                    RoomId = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
+                    UserId = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
                     RoomJoinTime = DateTime.UtcNow,
                     IsAsker = true
                 }
             }},
             {"Users", new []{
                 new User{
-                    Id = new UserId(Guid.Parse("771dd88e-bcd4-42d2-ade6-0804926628f0")),
+                    Id = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                     Email = new MailAddress("Alice@example.com"),
                     DisplayName = string.Empty,
                 },
                 new User{
-                    Id = new UserId(Guid.Parse("1fce0ea5-5736-454d-a3b3-30ca9b163bce")),
+                    Id = UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"),
                     Email = new MailAddress("Bob@example.com"),
                     DisplayName = string.Empty,
                 },
                 new User{
-                    Id = new UserId(Guid.Parse("785d1043-c84f-4cb4-800b-16e7770d482c")),
+                    Id = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
                     Email = new MailAddress("Claire@example.com"),
                     DisplayName = string.Empty,
                 },

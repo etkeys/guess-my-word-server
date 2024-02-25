@@ -90,12 +90,12 @@ public partial class UserServiceTests
                 new Dictionary<string, object[]>{
                     {"Users", new User[]{
                         new User{
-                            Id = new UserId(Guid.Parse("be6de9fa-dfd6-4e05-a344-5e868f99b0d0")),
+                            Id = UserId.FromString("be6de9fa-dfd6-4e05-a344-5e868f99b0d0"),
                             Email = new MailAddress("john.doe@somesite.com"),
                             DisplayName = "john.doe",
                         },
                         new User{
-                            Id = new UserId(Guid.Parse("48e29af1-b0b7-45e8-bd56-fe2c882be1a5")),
+                            Id = UserId.FromString("48e29af1-b0b7-45e8-bd56-fe2c882be1a5"),
                             Email = new MailAddress("alice.foo@bar.com"),
                             DisplayName = "Alice"
                         }
@@ -117,12 +117,12 @@ public partial class UserServiceTests
                 new Dictionary<string, object[]>{
                     {"Users", new User[]{
                         new User{
-                            Id = new UserId(Guid.Parse("be6de9fa-dfd6-4e05-a344-5e868f99b0d0")),
+                            Id = UserId.FromString("be6de9fa-dfd6-4e05-a344-5e868f99b0d0"),
                             Email = new MailAddress("john.doe@somesite.com"),
                             DisplayName = "john.doe",
                         },
                         new User{
-                            Id = new UserId(Guid.Parse("48e29af1-b0b7-45e8-bd56-fe2c882be1a5")),
+                            Id = UserId.FromString("48e29af1-b0b7-45e8-bd56-fe2c882be1a5"),
                             Email = new MailAddress("alice.foo@bar.com"),
                             DisplayName = "Alice"
                         }

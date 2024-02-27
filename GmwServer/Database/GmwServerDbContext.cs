@@ -12,6 +12,7 @@ public class GmwServerDbContext: DbContext
         Database.EnsureCreated();
     }
 
+    public DbSet<Definition> Definitions {get; set;}
     public DbSet<JoinCode> GeneratedRoomJoinCodes {get; set;}
     public DbSet<Player> Players {get; set;}
     public DbSet<GameRoom> Rooms {get; set;}

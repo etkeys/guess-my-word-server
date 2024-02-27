@@ -10,4 +10,6 @@ public class Word
     public string LiteralWord {get; init;} = null!;
 
     public PartOfSpeech PartOfSpeech {get; init;}
+
+    public ICollection<Definition> Definitions {get;} = new List<Definition>();
 }

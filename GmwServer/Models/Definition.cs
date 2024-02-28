@@ -8,6 +8,7 @@ namespace GmwServer;
 [PrimaryKey(nameof(LiteralWord), nameof(WordDefinitionId))]
 public class Definition
 {
+
     public string LiteralWord {get; init;} = null!;
 
     public int WordDefinitionId {get; init;}

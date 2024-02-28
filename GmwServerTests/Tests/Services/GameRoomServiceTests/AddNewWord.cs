@@ -15,79 +15,120 @@ public partial class GameRoomServiceTests
         var inpRoomId = (GameRoomId)test.Inputs["game room id"]!;
         var inpUserId = (UserId)test.Inputs["user id"]!;
         var inpNewWord = (string)test.Inputs["word"]!;
+        var inpDefinitionIds = (int[])test.Inputs["definition ids"]!;
 
         var actor = new GameRoomService(_dbContextFactoryMock.Object);
-        var actServiceResult = await actor.AddNewWord(inpRoomId, inpUserId, inpNewWord);
+        var actServiceResult = await actor.AddNewWord(inpRoomId, inpUserId, inpNewWord, inpDefinitionIds);
 
-        var expServiceResult = (IServiceResult<RoomWord>)test.Expected["service result"]!;
-        var expRoomWordCount = (int)test.Expected["room word count"]!;
-        var expActiveWord = (string)test.Expected["active word"]!;
+        var expIsError = (bool)test.Expected["is error"]!;
+        var expStatus = (HttpStatusCode)test.Expected["status"]!;
 
-        actServiceResult.Should().Be(expServiceResult, new ServiceResultEqaulityComparer<RoomWord>(
-            dataComparer: (_, _) => true
-        ));
+        actServiceResult.IsError.Should().Be(expIsError);
+        actServiceResult.Status.Should().Be(expStatus);
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
-        var roomWords = await
+        if (expIsError){
+            var expError = (string)test.Expected["error"]!;
+
+            actServiceResult.Data.Should().BeNull();
+            actServiceResult.Error.Should().NotBeNullOrEmpty()
+                .And.Be(expError);
+
+            // if we got an error, then the input word should not be
+            // in RoomWords
+            (await (
+                from rw in db.RoomWords
+                where
+                    rw.RoomId == inpRoomId
+                    && rw.LiteralWord == inpNewWord
+                    && rw.CompletedDateTime == null
+                select rw
+            ).AnyAsync())
+            .Should().BeFalse();
+
+            // if we got an error, then the input word should not be
+            // in RoomHints
+            (await (
+                from rh in db.RoomHints
+                where
+                    rh.RoomId == inpRoomId
+                    && rh.LiteralWord == inpNewWord
+                select rh
+            ).AnyAsync())
+            .Should().BeFalse();
+
+            return;
+        }
+
+        actServiceResult.Error.Should().BeNullOrEmpty();
+        actServiceResult.Data.Should().NotBeNull();
+
+        var actData = actServiceResult.Data!;
+
+        var expAskedDateTime = (DateTime)test.Expected["asked date time"]!;
+        var expHints = (int[])test.Expected["hints"]!;
+        var expRoomId = (GameRoomId)test.Expected["game room id"]!;
+        var expUserId = (UserId)test.Expected["user id"]!;
+        var expWord = (string)test.Expected["word"]!;
+
+        actData.AskedByUserId.Should().Be(expUserId);
+        actData.AskedDateTime.Should().BeWithin(1.Minutes()).After(expAskedDateTime);
+        actData.LiteralWord.Should().Be(expWord);
+        actData.RoomId.Should().Be(expRoomId);
+
+        (await
             (from rw in db.RoomWords
-            where rw.RoomId == inpRoomId
+            where
+                rw.RoomId == expRoomId
+                && rw.LiteralWord == expWord
+                && rw.AskedByUserId == expUserId
+                && rw.CompletedDateTime == null
             select rw)
-            .ToListAsync();
+            .CountAsync()
+        ).Should().Be(1, "because our input word should be the only active word for the room");
 
-        roomWords.Should().HaveCount(expRoomWordCount);
-        if (expRoomWordCount < 1) return;
+        // We should have the expected listing of room hints
+        (await
+            (from rh in db.RoomHints
+            where
+                rh.RoomId == expRoomId
+                && rh.LiteralWord == expWord
+            orderby rh.Sequence
+            select rh.WordDefinitionId)
+            .ToListAsync()
+        ).Should().Equal(expHints, "because we should have stored the provided hints in the correct order.");
 
-        var roomActiveWord = from w in roomWords where w.CompletedDateTime == null select w;
-        if (expActiveWord is null)
-            roomActiveWord.Should().BeEmpty();
-
-        else
-            roomActiveWord.Should().ContainSingle()
-                .And.AllSatisfy(a => {
-                    a.LiteralWord.Should().Be(expActiveWord);
-                    a.AskedByUserId.Should().Be(inpUserId);
-                });
     }
 
     public static IEnumerable<object[]> AddNewWordTestsData => BundleTestCases(
         new TestCase("New word added")
+            .WithInput("definition ids", new []{2,3,1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "skill")
-            .WithExpected("active word", "skill")
-            .WithExpected("room word count", 1)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.Created)
-                    .WithData(new RoomWord{
-                        LiteralWord = "skill",
-                        RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
-                        AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
-                        AskedDateTime = DateTime.UtcNow,
-                    })
-                    .Create())
+            .WithExpected("asked date time", DateTime.UtcNow)
+            .WithExpected("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithExpected("hints", new[] {2,3,1})
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithExpected("word", "skill")
             .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("New word added, room has no active word")
+            .WithInput("definition ids", new []{1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "media")
-            .WithExpected("active word", "media")
-            .WithExpected("room word count", 2)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.Created)
-                    .WithData(new RoomWord{
-                        LiteralWord = "media",
-                        RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
-                        AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
-                        AskedDateTime = DateTime.UtcNow,
-                    })
-                    .Create())
+            .WithExpected("asked date time", DateTime.UtcNow)
+            .WithExpected("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithExpected("hints", new []{1})
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithExpected("word", "media")
             .WithSetup("database", BasicTestData)
             .WithSetup(
                 "database add",
@@ -105,22 +146,17 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("New word added, same word but different room")
+            .WithInput("definition ids", new []{2,3,1})
             .WithInput("game room id", GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"))
             .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
             .WithInput("word", "skill")
-            .WithExpected("active word", "skill")
-            .WithExpected("room word count", 1)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.Created)
-                    .WithData(new RoomWord{
-                        LiteralWord = "skill",
-                        RoomId = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
-                        AskedByUserId = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
-                        AskedDateTime = DateTime.UtcNow,
-                    })
-                    .Create())
+            .WithExpected("asked date time", DateTime.UtcNow)
+            .WithExpected("game room id", GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"))
+            .WithExpected("is error", false)
+            .WithExpected("hints", new []{2,3,1})
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
+            .WithExpected("word", "skill")
             .WithSetup("database", BasicTestData)
             .WithSetup(
                 "database add",
@@ -138,47 +174,35 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("User is not player in room")
+            .WithInput("definition ids", new []{1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
             .WithInput("word", "media")
-            .WithExpected("active word", null)
-            .WithExpected("room word count", 0)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.UnprocessableEntity)
-                    .WithError("User is not the current asker.")
-                    .Create())
+            .WithExpected("error", "User is not the current asker.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
             .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("User is not the current asker")
+            .WithInput("definition ids", new []{1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
             .WithInput("word", "media")
-            .WithExpected("active word", null)
-            .WithExpected("room word count", 0)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.UnprocessableEntity)
-                    .WithError("User is not the current asker.")
-                    .Create())
+            .WithExpected("error", "User is not the current asker.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
             .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("Room already has an acive word")
+            .WithInput("definition ids", new []{1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "media")
-            .WithExpected("active word", "skill")
-            .WithExpected("room word count", 1)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.UnprocessableEntity)
-                    .WithError("Room already has an active word.")
-                    .Create())
+            .WithExpected("error", "Room already has an active word.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
             .WithSetup("database", BasicTestData)
             .WithSetup(
                 "database add",
@@ -195,32 +219,24 @@ public partial class GameRoomServiceTests
 
 
         ,new TestCase("Word is not in the word list")
+            .WithInput("definition ids", new []{1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "foo")
-            .WithExpected("active word", null)
-            .WithExpected("room word count", 0)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.UnprocessableEntity)
-                    .WithError("Provided word, 'foo', cannot be used.")
-                    .Create())
+            .WithExpected("error", "Provided word, 'foo', cannot be used.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
             .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("Word has been asked previously")
+            .WithInput("definition ids", new []{2,3,1})
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithInput("word", "skill")
-            .WithExpected("active word", null)
-            .WithExpected("room word count", 1)
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<RoomWord>()
-                    .WithStatus(HttpStatusCode.UnprocessableEntity)
-                    .WithError("Provided word, 'skill', cannot be used.")
-                    .Create())
+            .WithExpected("error", "Provided word, 'skill', cannot be used.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
             .WithSetup("database", BasicTestData)
             .WithSetup(
                 "database add",
@@ -235,5 +251,43 @@ public partial class GameRoomServiceTests
                         }
                     }}
                 })
+
+
+        ,new TestCase("New word added, definition ids contains duplicates")
+            .WithInput("definition ids", new []{2,3,1,2})
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithInput("word", "skill")
+            .WithExpected("asked date time", DateTime.UtcNow)
+            .WithExpected("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithExpected("hints", new[] {2,3,1})
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithExpected("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithExpected("word", "skill")
+            .WithSetup("database", BasicTestData)
+
+
+        ,new TestCase("Defintion ids contain invalid id")
+            .WithInput("definition ids", new []{2,3,1,4,0,-1})
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithInput("word", "skill")
+            .WithExpected("error", "Received invalid definition ids for word 'skill': -1, 0, 4.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
+            .WithSetup("database", BasicTestData)
+
+
+        ,new TestCase("No definition ids provided")
+            .WithInput("definition ids", new int[] {})
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithInput("word", "skill")
+            .WithExpected("error", "No definitions to use as hints provided.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
+            .WithSetup("database", BasicTestData)
+
     );
 }

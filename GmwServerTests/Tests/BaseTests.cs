@@ -23,13 +23,13 @@ public class BaseTests: IDisposable
                     Id = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
                     CreatedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                     CreatedDate = DateTime.UtcNow,
-                    JoinCode = new RoomJoinCode("aaaabbbb"),
+                    JoinCode = new RoomJoinCode("aaaabbEb"),
                 },
                 new GameRoom{
                     Id = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
                     CreatedByUserId = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
                     CreatedDate = DateTime.UtcNow,
-                    JoinCode = new RoomJoinCode("aaaabbba"),
+                    JoinCode = new RoomJoinCode("aaaabbNa"),
                 },
             }},
             {"Players", new [] {
@@ -42,7 +42,7 @@ public class BaseTests: IDisposable
                 new Player{
                     RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
                     UserId = UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"),
-                    RoomJoinTime = DateTime.UtcNow.AddMinutes(1),
+                    RoomJoinTime = DateTime.UtcNow.AddSeconds(30),
                 },
                 new Player{
                     RoomId = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),

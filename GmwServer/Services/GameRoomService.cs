@@ -153,6 +153,46 @@ public class GameRoomService: IGameRoomService
             : ServiceResults.NotFound<GameRoom>($"Could not find room with id '{id.Value}'.");
     }
 
+    public async Task<IServiceResult<GameRoomId>> JoinRoom(
+        UserId userId,
+        RoomJoinCode joinCode,
+        IRoomJoinCodeProvider jcProvider
+    ){
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        joinCode = jcProvider.NormalizeJoinCode(joinCode);
+
+        var roomId = await
+            (from r in db.Rooms
+            where r.JoinCode == joinCode
+            select r.Id)
+            .FirstOrDefaultAsync();
+
+        if (roomId is null)
+            return ServiceResults.NotFound<GameRoomId>("Could not find room using given join code.");
+
+        var isUserAlreadyPlayer = await
+            (from p in db.Players
+            where
+                p.RoomId == roomId
+                && p.UserId == userId
+            select true)
+            .AnyAsync();
+        if (isUserAlreadyPlayer)
+            return ServiceResults.Created(roomId);
+
+        var newPlayer = new Player{
+            RoomId = roomId,
+            UserId = userId,
+            RoomJoinTime = DateTime.UtcNow
+        };
+
+        db.Players.Add(newPlayer);
+        await db.SaveChangesAsync();
+
+        return ServiceResults.Created(roomId);
+    }
+
     private Task<bool> IsUserRoomAsker(GmwServerDbContext db, GameRoomId roomId, UserId userId) =>
         (from p in db.Players
         where
@@ -183,5 +223,7 @@ public interface IGameRoomService
         IEnumerable<int> wordDefinitionIds);
     Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
     Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id);
+
+    Task<IServiceResult<GameRoomId>> JoinRoom(UserId userId, RoomJoinCode joinCode, IRoomJoinCodeProvider jcProvider);
 
 }

@@ -96,11 +96,31 @@ public class GameRoomService: IGameRoomService
         if (requestingUser is null)
             return ServiceResults.Forbidden<GameRoomId>("Requesting user is not registered.");
 
+
+        var newRoom = new GameRoom{
+            CreatedDate = DateTime.UtcNow,
+            CreatedByUserId = requestingUser.Id
+        };
+        db.Rooms.Add(newRoom);
+
+        var newPlayer = new Player{
+            RoomId = newRoom.Id,
+            UserId = requestingUser.Id,
+            IsAsker = true,
+            RoomJoinTime = newRoom.CreatedDate
+        };
+        db.Players.Add(newPlayer);
+
+        await db.SaveChangesAsync();
+
         var joinCode = jcProvider.GetRoomJoinCode();
         var inserted = 0;
         while(inserted != 1){
             try{
-                db.GeneratedRoomJoinCodes.Add(new JoinCode{Id = joinCode});
+                db.JoinCodes.Add(new JoinCode{
+                    Id = joinCode,
+                    RoomId = newRoom.Id
+                });
                 inserted = await db.SaveChangesAsync();
             }
             catch(DbUpdateException ex){
@@ -118,23 +138,6 @@ public class GameRoomService: IGameRoomService
                     throw;
             }
         }
-
-        var newRoom = new GameRoom{
-            CreatedDate = DateTime.UtcNow,
-            JoinCode = joinCode,
-            CreatedByUserId = requestingUser.Id
-        };
-        db.Rooms.Add(newRoom);
-
-        var newPlayer = new Player{
-            RoomId = newRoom.Id,
-            UserId = requestingUser.Id,
-            IsAsker = true,
-            RoomJoinTime = newRoom.CreatedDate
-        };
-        db.Players.Add(newPlayer);
-
-        await db.SaveChangesAsync();
 
         return ServiceResults.Created(newRoom.Id);
     }
@@ -163,9 +166,9 @@ public class GameRoomService: IGameRoomService
         joinCode = jcProvider.NormalizeJoinCode(joinCode);
 
         var roomId = await
-            (from r in db.Rooms
-            where r.JoinCode == joinCode
-            select r.Id)
+            (from r in db.JoinCodes
+            where r.Id == joinCode
+            select r.RoomId)
             .FirstOrDefaultAsync();
 
         if (roomId is null)

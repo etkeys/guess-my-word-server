@@ -23,14 +23,22 @@ public class BaseTests: IDisposable
                     Id = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
                     CreatedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                     CreatedDate = DateTime.UtcNow,
-                    JoinCode = new RoomJoinCode("aaaabbEb"),
                 },
                 new GameRoom{
                     Id = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
                     CreatedByUserId = UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"),
                     CreatedDate = DateTime.UtcNow,
-                    JoinCode = new RoomJoinCode("aaaabbNa"),
                 },
+            }},
+            {"JoinCodes", new [] {
+                new JoinCode {
+                    Id = new RoomJoinCode("aaaabbEb"),
+                    RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                },
+                new JoinCode {
+                    Id = new RoomJoinCode("aaaabbNa"),
+                    RoomId = GameRoomId.FromString("bbb14f6c-53e4-4329-a1ca-8d668d7022ca"),
+                }
             }},
             {"Players", new [] {
                 new Player{
@@ -129,9 +137,9 @@ public class BaseTests: IDisposable
 
         using var db = new GmwServerDbContext(dbOptions);
 
-        if (tables!.TryGetValue("GeneratedRoomJoinCodes", out var genJoinCodesData))
-            foreach(var code in (JoinCode[])genJoinCodesData)
-                db.GeneratedRoomJoinCodes.Add(code);
+        if (tables!.TryGetValue("JoinCodes", out var joinCodesData))
+            foreach(var code in (JoinCode[])joinCodesData)
+                db.JoinCodes.Add(code);
 
         if (tables!.TryGetValue("Players", out var playerData))
             foreach(var player in (Player[])playerData)

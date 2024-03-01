@@ -13,7 +13,7 @@ public class GmwServerDbContext: DbContext
     }
 
     public DbSet<Definition> Definitions {get; set;}
-    public DbSet<JoinCode> GeneratedRoomJoinCodes {get; set;}
+    public DbSet<JoinCode> JoinCodes {get; set;}
     public DbSet<Player> Players {get; set;}
     public DbSet<GameRoom> Rooms {get; set;}
     public DbSet<RoomHint> RoomHints {get; set;}

@@ -21,13 +21,26 @@ public partial class GameRoomServiceTests
         var actor = new GameRoomService(_dbContextFactoryMock.Object);
         var actServiceResult = await actor.CreateRoom(inpRequestingUserId, _roomJoinCodeProviderMock.Object);
 
-        var expServiceResult = (IServiceResult<GameRoomId>)test.Expected["service result"]!;
+        var expIsError = (bool)test.Expected["is error"]!;
+        var expStatus = (HttpStatusCode)test.Expected["status"]!;
 
-        actServiceResult.Should().Be(
-            expServiceResult,
-            new ServiceResultEqaulityComparer<GameRoomId>(
-                dataComparer: (_, y) => true
-            ));
+        actServiceResult.IsError.Should().Be(expIsError);
+        actServiceResult.Status.Should().Be(expStatus);
+
+        if (expIsError){
+            var expError = (string)test.Expected["error"]!;
+
+            actServiceResult.Data.Should().BeNull();
+            actServiceResult.Error.Should().NotBeNullOrEmpty()
+                .And.Be(expError);
+
+            return;
+        }
+
+        actServiceResult.Data.Should().NotBeNull();
+
+        var expJoinCode = (RoomJoinCode)test.Expected["join code"]!;
+        var expRoom = (GameRoom)test.Expected["game room"]!;
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
@@ -35,23 +48,25 @@ public partial class GameRoomServiceTests
             (from r in db.Rooms where r.Id == actServiceResult.Data! select r)
             .ToListAsync();
 
-        if (expServiceResult.IsError){
-            actRooms.Should().BeEmpty();
-            return;
-        }
-
-        var expRoom = (GameRoom)test.Expected["game room"]!;
-
         actRooms.Should().ContainSingle()
             .And.AllSatisfy(a => {
                 a.CreatedDate.Should().BeWithin(1.Minutes()).After(expRoom.CreatedDate);
                 a.CreatedByUserId.Should().Be(expRoom.CreatedByUserId);
-                a.JoinCode.Should().Be(expRoom.JoinCode);
             });
 
-        (await (from p in db.Players where p.Room == actRooms.First() select p)
+        (await
+            (from j in db.JoinCodes
+            where j.Id == expJoinCode
+            select j)
             .ToListAsync())
-            .Should().ContainSingle()
+        .Should().ContainSingle("because there should be only one entry in JoinCodes.");
+
+        (await
+            (from p in db.Players
+            where p.Room == actRooms.First()
+            select p)
+        .ToListAsync())
+        .Should().ContainSingle()
             .And.AllSatisfy(a => {
                 a.UserId.Should().Be(expRoom.CreatedByUserId);
                 a.RoomJoinTime.Should().BeWithin(1.Minutes()).After(expRoom.CreatedDate);
@@ -61,103 +76,52 @@ public partial class GameRoomServiceTests
 
     public static IEnumerable<object[]> CreateRoomTestsData => BundleTestCases(
         new TestCase("Join code doesn't exist")
-            .WithSetup(
-                "database",
-                new Dictionary<string, object[]> {
-                    {"Users", new[]{
-                        new User{
-                            Id = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
-                            Email = new MailAddress("john.doe@example.com"),
-                            DisplayName = "john.doe"
-                        }
-                    }}
-                }
-            )
             .WithInput("join codes", new [] {"ayVN90if"})
-            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<GameRoomId>()
-                    .WithStatus(HttpStatusCode.Created)
-                    .WithData(new GameRoomId(Guid.Empty))
-                    .Create())
+            .WithInput("requesting user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithExpected("game room", new GameRoom{
                 Id = new GameRoomId(Guid.Empty),
-                CreatedByUserId = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
+                CreatedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                 CreatedDate = DateTime.UtcNow,
-                JoinCode = new RoomJoinCode("ayVN90if")
             })
+            .WithExpected("is error", false)
+            .WithExpected("join code", new RoomJoinCode("ayVN90if"))
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("First join code already exists")
-            .WithSetup(
-                "database",
-                new Dictionary<string, object[]>{
-                    {"GeneratedRoomJoinCodes", new []{
-                        new JoinCode{Id = new RoomJoinCode("ayVN90if")}}},
-                    {"Users", new[]{
-                        new User{
-                            Id = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
-                            Email = new MailAddress("john.doe@example.com"),
-                            DisplayName = "john.doe"
-                        }
-                    }},
-            })
-            .WithInput("join codes", new [] {"ayVN90if", "t918dhbE"})
-            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<GameRoomId>()
-                    .WithStatus(HttpStatusCode.Created)
-                    .WithData(new GameRoomId(Guid.Empty))
-                    .Create())
+            .WithInput("join codes", new [] {"aaaabbEb", "t918dhbE"})
+            .WithInput("requesting user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithExpected("game room", new GameRoom{
                 Id = new GameRoomId(Guid.Empty),
-                CreatedByUserId = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
+                CreatedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                 CreatedDate = DateTime.UtcNow,
-                JoinCode = new RoomJoinCode("t918dhbE")
             })
+            .WithExpected("is error", false)
+            .WithExpected("join code", new RoomJoinCode("t918dhbE"))
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("First join and second code already exists")
-            .WithSetup(
-                "database",
-                new Dictionary<string, object[]>{
-                    {"GeneratedRoomJoinCodes", new []{
-                        new JoinCode{Id = new RoomJoinCode("ayVN90if")},
-                        new JoinCode{Id = new RoomJoinCode("t918dhbE")}}},
-                    {"Users", new[]{
-                        new User{
-                            Id = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
-                            Email = new MailAddress("john.doe@example.com"),
-                            DisplayName = "john.doe"
-                        }
-                    }},
-            })
-            .WithInput("join codes", new [] {"ayVN90if", "t918dhbE", "7agtu991"})
-            .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<GameRoomId>()
-                    .WithStatus(HttpStatusCode.Created)
-                    .WithData(new GameRoomId(Guid.Empty))
-                    .Create())
+            .WithInput("join codes", new [] {"aaaabbEb", "aaaabbNa", "7agtu991"})
+            .WithInput("requesting user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
             .WithExpected("game room", new GameRoom{
                 Id = new GameRoomId(Guid.Empty),
-                CreatedByUserId = UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"),
+                CreatedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
                 CreatedDate = DateTime.UtcNow,
-                JoinCode = new RoomJoinCode("7agtu991")
             })
+            .WithExpected("is error", false)
+            .WithExpected("join code", new RoomJoinCode("7agtu991"))
+            .WithExpected("status", HttpStatusCode.Created)
+            .WithSetup("database", BasicTestData)
 
 
         ,new TestCase("Requesting user does not exist")
             .WithInput("join codes", new [] {"ayVN90if"})
             .WithInput("requesting user id", UserId.FromString("ce568790-e5ae-4b9a-9afd-089703d71b2a"))
-            .WithExpected(
-                "service result",
-                new ServiceResultBuilder<GameRoomId>()
-                    .WithStatus(HttpStatusCode.Forbidden)
-                    .WithError("Requesting user is not registered.")
-                    .Create())
+            .WithExpected("error", "Requesting user is not registered.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.Forbidden)
     );
 }

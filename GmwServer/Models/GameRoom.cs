@@ -5,19 +5,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GmwServer;
 
-[Index(nameof(GmwServer.JoinCode))]
 public class GameRoom
 {
     [Key]
     public GameRoomId Id {get; init;} = new GameRoomId(Guid.NewGuid());
     public DateTime CreatedDate {get; init;}
-    public RoomJoinCode? JoinCode {get; init;}
     public UserId CreatedByUserId {get; init;} = null!;
 
     #region Navigation properties
 
     [ForeignKey("CreatedByUserId")]
     public User CreatedByUser {get; init;} = null!;
+
+    public JoinCode? JoinCode {get; private set;}
 
     #endregion
 }

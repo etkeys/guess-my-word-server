@@ -29,6 +29,8 @@ public partial class GameRoomServiceTests
         if (exp.IsError)
             return;
 
+        #warning Unit tests not finished
+
         // Don't need to test any further than ID because
         // we are insterting the record...If we don't get
         // the same ID then the rest of the properties are
@@ -64,7 +66,6 @@ public partial class GameRoomServiceTests
                     {"Rooms", new[] {
                         new GameRoom{
                             Id = GameRoomId.FromString("977e4665-6acb-42c3-9259-93933d2f9290"),
-                            JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
 
@@ -86,7 +87,7 @@ public partial class GameRoomServiceTests
                     .WithStatus(HttpStatusCode.OK)
                     .WithData(new GameRoom{
                             Id = GameRoomId.FromString("977e4665-6acb-42c3-9259-93933d2f9290"),
-                            JoinCode = new RoomJoinCode("aaaabbbb"),
+                            CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
                         })
                         .Create())
@@ -99,13 +100,11 @@ public partial class GameRoomServiceTests
                     {"Rooms", new[] {
                         new GameRoom{
                             Id = GameRoomId.FromString("977e4665-6acb-42c3-9259-93933d2f9290"),
-                            JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
                         },
                         new GameRoom{
                             Id = GameRoomId.FromString("0877aa3c-598e-42a2-b3e3-6bea82d42968"),
-                            JoinCode = new RoomJoinCode("bbbbaaaa"),
                             CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
                         },
@@ -126,7 +125,7 @@ public partial class GameRoomServiceTests
                     .WithStatus(HttpStatusCode.OK)
                     .WithData(new GameRoom{
                             Id = GameRoomId.FromString("0877aa3c-598e-42a2-b3e3-6bea82d42968"),
-                            JoinCode = new RoomJoinCode("bbbbaaaa"),
+                            CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
                         })
                         .Create())
@@ -139,13 +138,11 @@ public partial class GameRoomServiceTests
                     {"Rooms", new[] {
                         new GameRoom{
                             Id = GameRoomId.FromString("977e4665-6acb-42c3-9259-93933d2f9290"),
-                            JoinCode = new RoomJoinCode("aaaabbbb"),
                             CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
                         },
                         new GameRoom{
                             Id = GameRoomId.FromString("0877aa3c-598e-42a2-b3e3-6bea82d42968"),
-                            JoinCode = new RoomJoinCode("bbbbaaaa"),
                             CreatedByUserId = UserId.FromString("13422776-bc7a-4197-aafe-88f972c6ace8"),
                             CreatedDate = DateTime.UtcNow,
                         },

@@ -6,6 +6,15 @@ namespace GmwServer;
 public class JoinCode
 {
     [Key]
-    [Column(TypeName = "nvarchar(8)")]
     public RoomJoinCode Id {get; init;} = null!;
+
+    public GameRoomId RoomId {get; init;} = null!;
+
+
+    #region Navigation properties
+
+    [ForeignKey(nameof(RoomId))]
+    public GameRoom Room {get;} = null!;
+
+    #endregion
 }

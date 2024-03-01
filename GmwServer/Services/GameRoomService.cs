@@ -143,6 +143,7 @@ public class GameRoomService: IGameRoomService
     }
 
     public async Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id){
+        // TODO User making the request must be in the room
         using var db = await _dbContextFactory.CreateDbContextAsync();
 
         var result = await

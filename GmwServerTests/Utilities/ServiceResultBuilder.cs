@@ -5,6 +5,7 @@ using GmwServer;
 
 namespace GmwServerTests;
 
+[Obsolete("Store properties individually")]
 public class ServiceResultBuilder<T>
 {
     private readonly Dictionary<string, object?> _data = new();

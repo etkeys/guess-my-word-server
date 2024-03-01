@@ -5,6 +5,7 @@ using GmwServer;
 namespace GmwServerTests;
 
 
+[Obsolete("Use direct property comparisions instead")]
 public class ServiceResultEqaulityComparer<T>: IEqualityComparer<IServiceResult<T>>
 {
     public delegate bool OverrideDataComparer(T x, T y);

@@ -102,6 +102,24 @@ public class BaseTests: IDisposable
         return result;
     }
 
+    protected async Task<Dictionary<string, int>> GetDatabaseTableCounts(
+        DbContextOptions<GmwServerDbContext> dbOptions
+    ){
+        using var db = new GmwServerDbContext(dbOptions);
+        var result = new Dictionary<string, int>{
+            {nameof(db.Definitions), await db.Definitions.CountAsync()},
+            {nameof(db.JoinCodes), await db.JoinCodes.CountAsync()},
+            {nameof(db.Players), await db.Players.CountAsync()},
+            {nameof(db.Rooms), await db.Rooms.CountAsync()},
+            {nameof(db.RoomHints), await db.RoomHints.CountAsync()},
+            {nameof(db.RoomWords), await db.RoomWords.CountAsync()},
+            {nameof(db.Users), await db.Users.CountAsync()},
+            {nameof(db.Words), await db.Words.CountAsync()},
+        };
+
+        return result;
+    }
+
     protected async Task ModifyDatabase(
         DbContextOptions<GmwServerDbContext> dbOptions,
         IDictionary<string, object?> testSetups

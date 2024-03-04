@@ -12,6 +12,8 @@ public partial class GameRoomServiceTests
         await SetupDatabase(DefaultDbContextOptions, test.Setups);
         await ModifyDatabase(DefaultDbContextOptions, test.Setups);
 
+        var initTableCounts = await GetDatabaseTableCounts(DefaultDbContextOptions);
+
         var inpRoomId = (GameRoomId)test.Inputs["game room id"]!;
         var inpUserId = (UserId)test.Inputs["user id"]!;
         var inpNewWord = (string)test.Inputs["word"]!;
@@ -25,6 +27,8 @@ public partial class GameRoomServiceTests
 
         actServiceResult.IsError.Should().Be(expIsError);
         actServiceResult.Status.Should().Be(expStatus);
+
+        var actTableCounts = await GetDatabaseTableCounts(DefaultDbContextOptions);
 
         using var db = new GmwServerDbContext(DefaultDbContextOptions);
 
@@ -58,6 +62,8 @@ public partial class GameRoomServiceTests
                 select rh
             ).AnyAsync())
             .Should().BeFalse();
+
+            actTableCounts.Should().Equal(initTableCounts);
 
             return;
         }

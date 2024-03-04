@@ -18,6 +18,7 @@ public class GameRoomService: IGameRoomService
         // TODO Controller must validation that word is not null or whitespace
 
         using var db = await _dbContextFactory.CreateDbContextAsync();
+        using var trans = await db.Database.BeginTransactionAsync();
 
         if (!await IsUserRoomAsker(db, roomId, userId))
             return ServiceResults.UnprocessableEntity<RoomWord>("User is not the current asker.");
@@ -70,6 +71,8 @@ public class GameRoomService: IGameRoomService
         if (badDefinitionIds.Any())
             return ServiceResults.UnprocessableEntity<RoomWord>($"Received invalid definitions for word '{newWord}'.");
 
+        await db.RoomHints.Where(h => h.RoomId == roomId).ExecuteDeleteAsync();
+
         var hints = definitions.Distinct().Select((d, index) => new RoomHint{
             RoomId = roomId,
             Sequence = index,
@@ -79,6 +82,7 @@ public class GameRoomService: IGameRoomService
         db.RoomHints.AddRange(hints);
 
         await db.SaveChangesAsync();
+        await trans.CommitAsync();
 
         return ServiceResults.Created(newUsedWord);
     }

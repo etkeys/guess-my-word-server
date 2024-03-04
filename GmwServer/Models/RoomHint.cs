@@ -4,7 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GmwServer;
 
-[PrimaryKey(nameof(RoomId), nameof(Sequence), nameof(DefinitionId))]
+[PrimaryKey(nameof(RoomId), nameof(Sequence))]
+[Index(nameof(RoomId), nameof(DefinitionId), IsUnique = true)]
 public class RoomHint
 {
     public GameRoomId RoomId {get; init;} = null!;

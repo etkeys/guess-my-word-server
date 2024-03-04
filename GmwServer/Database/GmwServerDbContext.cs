@@ -26,6 +26,7 @@ public class GmwServerDbContext: DbContext
     {
         base.ConfigureConventions(configurationBuilder);
 
+        configurationBuilder.Properties<DefinitionId>().HaveConversion<DefinitionIdValueConverter>();
         configurationBuilder.Properties<GameRoomId>().HaveConversion<GameRoomIdValueConverter>();
         configurationBuilder.Properties<MailAddress>().HaveConversion<MailAddressValueConverter, MailAddressValueComparer>();
         configurationBuilder.Properties<RoomJoinCode>().HaveConversion<RoomJoinCodeValueConverter>();

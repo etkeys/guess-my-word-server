@@ -1,13 +1,16 @@
 
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace GmwServer;
 
 [EntityTypeConfiguration(typeof(DefinitionConfiguration))]
-[PrimaryKey(nameof(LiteralWord), nameof(WordDefinitionId))]
+[Index(nameof(LiteralWord), nameof(WordDefinitionId), IsUnique = true)]
 public class Definition
 {
+    [Key]
+    public DefinitionId Id {get; init;} = DefinitionId.New();
 
     public string LiteralWord {get; init;} = null!;
 

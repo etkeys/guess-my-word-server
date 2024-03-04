@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace GmwServer;
 
+public class DefinitionIdValueConverter: ValueConverter<DefinitionId, Guid>
+{
+    public DefinitionIdValueConverter(): base(v => v.Value, v => new DefinitionId(v)){ }
+}
+
 public class GameRoomIdValueConverter: ValueConverter<GameRoomId, Guid>
 {
     public GameRoomIdValueConverter(): base(v => v.Value, v => new GameRoomId(v)){ }

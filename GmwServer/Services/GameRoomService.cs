@@ -14,7 +14,7 @@ public class GameRoomService: IGameRoomService
         GameRoomId roomId,
         UserId userId,
         string newWord,
-        IEnumerable<int> wordDefinitionIds){
+        IEnumerable<DefinitionId> definitions){
         // TODO Controller must validation that word is not null or whitespace
 
         using var db = await _dbContextFactory.CreateDbContextAsync();
@@ -25,7 +25,7 @@ public class GameRoomService: IGameRoomService
         if (await RoomHasActiveWord(db, roomId))
             return ServiceResults.UnprocessableEntity<RoomWord>("Room already has an active word.");
 
-        if (!wordDefinitionIds.Any())
+        if (!definitions.Any())
             return ServiceResults.UnprocessableEntity<RoomWord>("No definitions to use as hints provided.");
 
         // Word must be in the known word list
@@ -58,24 +58,22 @@ public class GameRoomService: IGameRoomService
         db.RoomWords.Add(newUsedWord);
 
         var badDefinitionIds = await Task.Run(() =>
-            (from id in wordDefinitionIds
+            (from id in definitions
             select id)
             .Except(
                 from d in db.Definitions
                 where d.LiteralWord == newWord
-                select d.WordDefinitionId
+                select d.Id
             )
             .ToList());
 
         if (badDefinitionIds.Any())
-            return ServiceResults.UnprocessableEntity<RoomWord>(
-                $"Received invalid definition ids for word '{newWord}': {string.Join(", ", badDefinitionIds.OrderBy(i => i))}.");
+            return ServiceResults.UnprocessableEntity<RoomWord>($"Received invalid definitions for word '{newWord}'.");
 
-        var hints = wordDefinitionIds.Distinct().Select((d, index) => new RoomHint{
+        var hints = definitions.Distinct().Select((d, index) => new RoomHint{
             RoomId = roomId,
-            LiteralWord = newWord,
-            WordDefinitionId = d,
-            Sequence = index
+            Sequence = index,
+            DefinitionId = d
         });
 
         db.RoomHints.AddRange(hints);
@@ -224,10 +222,9 @@ public interface IGameRoomService
         GameRoomId roomId,
         UserId userId,
         string newCurrentWord,
-        IEnumerable<int> wordDefinitionIds);
+        IEnumerable<DefinitionId> definitions);
     Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
     Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id);
-
     Task<IServiceResult<GameRoomId>> JoinRoom(UserId userId, RoomJoinCode joinCode, IRoomJoinCodeProvider jcProvider);
 
 }

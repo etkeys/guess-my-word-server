@@ -1,6 +1,14 @@
 
 namespace GmwServer;
 
+public record DefinitionId(Guid Value): StronglyTyped<Guid>(Value)
+{
+    public static DefinitionId FromString(string valueAsString) =>
+        new DefinitionId(Guid.Parse(valueAsString));
+
+    public static DefinitionId New() => new DefinitionId(Guid.NewGuid());
+}
+
 public record GameRoomId(Guid Value): StronglyTyped<Guid>(Value)
 {
     public static GameRoomId FromString(string valueAsString) =>

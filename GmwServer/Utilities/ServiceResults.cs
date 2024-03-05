@@ -5,6 +5,9 @@ namespace GmwServer;
 
 public static class ServiceResults
 {
+    public static IServiceResult<T> BadRequest<T>(string error) =>
+        new ConcreteObjectServiceResult<T>(HttpStatusCode.BadRequest, error);
+
     public static IServiceResult<T> Created<T>(T data) =>
         new ConcreteObjectServiceResult<T>(data, HttpStatusCode.Created);
 

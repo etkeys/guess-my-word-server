@@ -20,7 +20,7 @@ public class GameRoomService: IGameRoomService
         using var db = await _dbContextFactory.CreateDbContextAsync();
         using var trans = await db.Database.BeginTransactionAsync();
 
-        if (!await IsUserRoomAsker(db, roomId, userId))
+        if (!((await db.Players.FindAsync(roomId, userId))?.IsAsker ?? false))
             return ServiceResults.UnprocessableEntity<RoomWord>("User is not the current asker.");
 
         if (await RoomHasActiveWord(db, roomId))
@@ -199,15 +199,6 @@ public class GameRoomService: IGameRoomService
         return ServiceResults.Created(roomId);
     }
 
-    private Task<bool> IsUserRoomAsker(GmwServerDbContext db, GameRoomId roomId, UserId userId) =>
-        (from p in db.Players
-        where
-            p.RoomId == roomId
-            && p.UserId == userId
-            && p.IsAsker
-        select true)
-        .AnyAsync();
-
     private Task<bool> RoomHasActiveWord(GmwServerDbContext db, GameRoomId roomId) =>
         (from wu in db.RoomWords
         where
@@ -216,6 +207,35 @@ public class GameRoomService: IGameRoomService
         select true)
         .AnyAsync();
 
+    public async Task<IServiceResult<SolveWordResultVm>> SolveWord(GameRoomId roomId, UserId userId, string guessWord){
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        var player = await db.Players.FindAsync(roomId, userId);
+        if (player is null)
+            return ServiceResults.Forbidden<SolveWordResultVm>("User is not a player in the room.");
+
+        if (player.IsAsker)
+            return ServiceResults.UnprocessableEntity<SolveWordResultVm>("Player cannot solve the current word because they are the asker.");
+
+        var roomActiveWord = await
+            (from rw in db.RoomWords
+            where rw.CompletedDateTime == null
+            select rw.LiteralWord)
+            .FirstOrDefaultAsync();
+
+        if (roomActiveWord is null)
+            return ServiceResults.UnprocessableEntity<SolveWordResultVm>("There is no active word to solve.");
+
+        // TODO are there ways to allow "close enough" answers? Spelling is hard.
+        var isGuessCorrect = string.Equals(roomActiveWord, guessWord, StringComparison.InvariantCultureIgnoreCase);
+
+        // If the guess is correct, need to log the player as solving the word.
+        // If the player is the last non-asker to solve the word, then
+        //   - mark the word as completed.
+        //   - change the room's asker.
+
+        return ServiceResults.Ok(new SolveWordResultVm(isGuessCorrect));
+    }
 
 
 }
@@ -230,5 +250,6 @@ public interface IGameRoomService
     Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
     Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id);
     Task<IServiceResult<GameRoomId>> JoinRoom(UserId userId, RoomJoinCode joinCode, IRoomJoinCodeProvider jcProvider);
+    Task<IServiceResult<SolveWordResultVm>> SolveWord(GameRoomId roomId, UserId userId, string guessWord);
 
 }

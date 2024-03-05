@@ -1,0 +1,177 @@
+
+using GmwServer;
+
+namespace GmwServerTests;
+
+public partial class GameRoomServiceTests
+{
+    [Theory, MemberData(nameof(SolveWordTestsData))]
+    public async Task SolveWordTests(TestCase test) {
+        await SetupDatabase();
+        await ModifyDatabase(test.Setups);
+
+        var inpGameRoom = (GameRoomId)test.Inputs["game room id"]!;
+        var inpGuess = (string)test.Inputs["guess"]!;
+        var inpUserId = (UserId)test.Inputs["user id"]!;
+
+        var actor = new GameRoomService(_dbContextFactoryMock.Object);
+        var actServiceResult = await actor.SolveWord(inpGameRoom, inpUserId, inpGuess);
+
+        var expIsError = (bool)test.Expected["is error"]!;
+        var expStatus = (HttpStatusCode)test.Expected["status"]!;
+
+        actServiceResult.IsError.Should().Be(expIsError);
+        actServiceResult.Status.Should().Be(expStatus);
+
+        if (expIsError){
+            var expError = (string)test.Expected["error"]!;
+
+            actServiceResult.Data.Should().BeNull();
+            actServiceResult.Error.Should().NotBeNullOrEmpty()
+                .And.Be(expError);
+
+            return;
+        }
+
+        actServiceResult.Error.Should().BeNullOrEmpty();
+        actServiceResult.Data.Should().NotBeNull();
+
+        var actData = actServiceResult.Data!;
+
+        var expIsCorrect = (bool)test.Expected["is correct"]!;
+
+        actData.IsGuessCorrect.Should().Be(expIsCorrect);
+    }
+
+    public static IEnumerable<object[]> SolveWordTestsData => BundleTestCases(
+        new TestCase("Guess is correct")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "skill")
+            .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
+            .WithExpected("is correct", true)
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.OK)
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]> {
+                    {"RoomWords", new [] {
+                        new RoomWord {
+                            LiteralWord = "skill",
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                            AskedDateTime = DateTime.UtcNow
+                        },
+                    }}
+                })
+
+
+        ,new TestCase("Guess is correct, different casing")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "SkILl")
+            .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
+            .WithExpected("is correct", true)
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.OK)
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]> {
+                    {"RoomWords", new [] {
+                        new RoomWord {
+                            LiteralWord = "skill",
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                            AskedDateTime = DateTime.UtcNow
+                        },
+                    }}
+                })
+
+
+        ,new TestCase("Guess is incorrect")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "foo")
+            .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
+            .WithExpected("is correct", false)
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.OK)
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]> {
+                    {"RoomWords", new [] {
+                        new RoomWord {
+                            LiteralWord = "skill",
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                            AskedDateTime = DateTime.UtcNow
+                        },
+                    }}
+                })
+
+
+        ,new TestCase("Guess is incorrect, is empty string")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", string.Empty)
+            .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
+            .WithExpected("is correct", false)
+            .WithExpected("is error", false)
+            .WithExpected("status", HttpStatusCode.OK)
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]> {
+                    {"RoomWords", new [] {
+                        new RoomWord {
+                            LiteralWord = "skill",
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                            AskedDateTime = DateTime.UtcNow
+                        },
+                    }}
+                })
+
+
+        ,new TestCase("User is not a player in the room")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "skill")
+            .WithInput("user id", UserId.FromString("785d1043-c84f-4cb4-800b-16e7770d482c"))
+            .WithExpected("error", "User is not a player in the room.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.Forbidden)
+            .WithSetup("database", BasicTestData)
+
+
+        ,new TestCase("User is not a player in the room")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "skill")
+            .WithInput("user id", UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"))
+            .WithExpected("error", "Player cannot solve the current word because they are the asker.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
+            .WithSetup("database", BasicTestData)
+
+
+        ,new TestCase("Guess is correct")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "media")
+            .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
+            .WithExpected("error", "There is no active word to solve.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]> {
+                    {"RoomWords", new [] {
+                        new RoomWord {
+                            LiteralWord = "skill",
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                            AskedDateTime = DateTime.UtcNow,
+                            CompletedDateTime = DateTime.UtcNow.AddMinutes(1)
+                        },
+                    }}
+                })
+    );
+}

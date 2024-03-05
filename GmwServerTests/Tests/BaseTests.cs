@@ -132,6 +132,9 @@ public class BaseTests: IDisposable
         await db.SaveChangesAsync();
     }
 
+    protected Task ModifyDatabase(IDictionary<string, object?> testSetups) =>
+        ModifyDatabase(DefaultDbContextOptions, testSetups);
+
     private void ModifyDatabaseAdd(
         GmwServerDbContext db,
         IDictionary<string, object[]> tables
@@ -141,17 +144,28 @@ public class BaseTests: IDisposable
                 db.RoomWords.Add(room);
     }
 
-    protected async Task SetupDatabase(
+    protected Task SetupDatabase(
         DbContextOptions<GmwServerDbContext> dbOptions,
         IDictionary<string, object?> testSetups
     ){
-        _dbContextFactoryMock.Setup(e => e.CreateDbContext()).Returns(new GmwServerDbContext(dbOptions));
-        _dbContextFactoryMock.Setup(e => e.CreateDbContextAsync(It.IsAny<CancellationToken>()))
-                            .ReturnsAsync(new GmwServerDbContext(dbOptions));
-
-        if (!testSetups.TryGetValue("database", out var maybeTables)) return;
+        if (!testSetups.TryGetValue("database", out var maybeTables)){
+            SetupDbContextFactoryMock(dbOptions);
+            return Task.Run(() => {});
+        }
 
         var tables = maybeTables as Dictionary<string, object[]>;
+
+        return SetupDatabaseImpl(dbOptions, tables!);
+    }
+
+    protected Task SetupDatabase() =>
+        SetupDatabaseImpl(DefaultDbContextOptions, BasicTestData);
+
+    private async Task SetupDatabaseImpl(
+        DbContextOptions<GmwServerDbContext> dbOptions,
+        IDictionary<string, object[]> tables
+    ){
+        SetupDbContextFactoryMock(dbOptions);
 
         using var db = new GmwServerDbContext(dbOptions);
 
@@ -172,6 +186,12 @@ public class BaseTests: IDisposable
                 db.Users.Add(user);
 
         await db.SaveChangesAsync();
+    }
+
+    private void SetupDbContextFactoryMock(DbContextOptions<GmwServerDbContext> dbOptions){
+        _dbContextFactoryMock.Setup(e => e.CreateDbContext()).Returns(new GmwServerDbContext(dbOptions));
+        _dbContextFactoryMock.Setup(e => e.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+                            .ReturnsAsync(new GmwServerDbContext(dbOptions));
     }
 
     public virtual void Dispose(){

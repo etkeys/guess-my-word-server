@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GmwServer;
 
-public class GmwServerDbContext: DbContext
+public partial class GmwServerDbContext: DbContext
 {
     public GmwServerDbContext(DbContextOptions<GmwServerDbContext> options): base(options){
 #if !DEBUG

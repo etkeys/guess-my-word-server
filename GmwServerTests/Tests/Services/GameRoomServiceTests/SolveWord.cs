@@ -1,5 +1,6 @@
 
 using GmwServer;
+using Microsoft.EntityFrameworkCore;
 
 namespace GmwServerTests;
 
@@ -39,8 +40,26 @@ public partial class GameRoomServiceTests
         var actData = actServiceResult.Data!;
 
         var expIsCorrect = (bool)test.Expected["is correct"]!;
+        var expSolvedDateTime = (DateTime)test.Expected.GetValueOrDefault("solved date time", default(DateTime))!;
 
         actData.IsGuessCorrect.Should().Be(expIsCorrect);
+
+        using var db = new GmwServerDbContext(DefaultDbContextOptions);
+
+        var actRoomSolves = await
+            (from rs in db.RoomSolves
+            where
+                rs.RoomId == inpGameRoom
+                && rs.LiteralWord == inpGuess.ToLower()
+                && rs.UserId == inpUserId
+            select rs)
+            .ToListAsync();
+
+        if (expIsCorrect)
+            actRoomSolves.Should().ContainSingle()
+                .And.AllSatisfy(i => i.SolvedDateTime.Should().BeWithin(1.Minutes()).After(expSolvedDateTime));
+        else
+            actRoomSolves.Should().BeEmpty();
     }
 
     public static IEnumerable<object[]> SolveWordTestsData => BundleTestCases(
@@ -51,6 +70,7 @@ public partial class GameRoomServiceTests
             .WithExpected("is correct", true)
             .WithExpected("is error", false)
             .WithExpected("status", HttpStatusCode.OK)
+            .WithExpected("solved date time", DateTime.UtcNow)
             .WithSetup("database", BasicTestData)
             .WithSetup(
                 "database add",
@@ -73,6 +93,7 @@ public partial class GameRoomServiceTests
             .WithExpected("is correct", true)
             .WithExpected("is error", false)
             .WithExpected("status", HttpStatusCode.OK)
+            .WithExpected("solved date time", DateTime.UtcNow)
             .WithSetup("database", BasicTestData)
             .WithSetup(
                 "database add",
@@ -152,7 +173,7 @@ public partial class GameRoomServiceTests
             .WithSetup("database", BasicTestData)
 
 
-        ,new TestCase("Guess is correct")
+        ,new TestCase("Room has no active word")
             .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
             .WithInput("guess", "media")
             .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
@@ -173,5 +194,36 @@ public partial class GameRoomServiceTests
                         },
                     }}
                 })
+
+
+        ,new TestCase("Room has no active word")
+            .WithInput("game room id", GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"))
+            .WithInput("guess", "skill")
+            .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
+            .WithExpected("error", "User has already solved the active word.")
+            .WithExpected("is error", true)
+            .WithExpected("status", HttpStatusCode.UnprocessableEntity)
+            .WithSetup("database", BasicTestData)
+            .WithSetup(
+                "database add",
+                new Dictionary<string, object[]> {
+                    {"RoomSolves", new [] {
+                        new RoomSolve{
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            LiteralWord = "skill",
+                            UserId = UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"),
+                            SolvedDateTime = DateTime.UtcNow.AddMinutes(1)
+                        }
+                    }},
+                    {"RoomWords", new [] {
+                        new RoomWord {
+                            LiteralWord = "skill",
+                            RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                            AskedByUserId = UserId.FromString("771dd88e-bcd4-42d2-ade6-0804926628f0"),
+                            AskedDateTime = DateTime.UtcNow,
+                        },
+                    }},
+                })
+
     );
 }

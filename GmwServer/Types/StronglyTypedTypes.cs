@@ -19,6 +19,14 @@ public record GameRoomId(Guid Value): StronglyTyped<Guid>(Value)
 
 public record RoomJoinCode(string Value): StronglyTyped<string>(Value);
 
+public record RoomSolveId(Guid Value): StronglyTyped<Guid>(Value)
+{
+    public static RoomSolveId FromString(string valueAsString) =>
+        new RoomSolveId(Guid.Parse(valueAsString));
+
+    public static RoomSolveId New() => new RoomSolveId(Guid.NewGuid());
+}
+
 public record UserId(Guid Value): StronglyTyped<Guid>(Value)
 {
     public static UserId FromString(string valueAsString) =>

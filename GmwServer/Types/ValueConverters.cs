@@ -35,6 +35,11 @@ public class RoomJoinCodeValueConverter: ValueConverter<RoomJoinCode, string>
     public RoomJoinCodeValueConverter(): base(v => v.Value, v => new RoomJoinCode(v)){ }
 }
 
+public class RoomSolveIdValueConverter: ValueConverter<RoomSolveId, Guid>
+{
+    public RoomSolveIdValueConverter(): base(v => v.Value, v => new RoomSolveId(v)){ }
+}
+
 public class UserIdValueConverter: ValueConverter<UserId, Guid>
 {
     public UserIdValueConverter(): base(v => v.Value, v => new UserId(v)){ }

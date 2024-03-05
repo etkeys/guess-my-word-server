@@ -226,10 +226,31 @@ public class GameRoomService: IGameRoomService
         if (roomActiveWord is null)
             return ServiceResults.UnprocessableEntity<SolveWordResultVm>("There is no active word to solve.");
 
+        var userHasAlreadySolved = await
+            (from rs in db.RoomSolves
+            where
+                rs.RoomId == roomId
+                && rs.LiteralWord == roomActiveWord
+                && rs.UserId == userId
+            select rs)
+            .AnyAsync();
+
+        if (userHasAlreadySolved)
+            return ServiceResults.UnprocessableEntity<SolveWordResultVm>("User has already solved the active word.");
+
         // TODO are there ways to allow "close enough" answers? Spelling is hard.
         var isGuessCorrect = string.Equals(roomActiveWord, guessWord, StringComparison.InvariantCultureIgnoreCase);
 
-        // If the guess is correct, need to log the player as solving the word.
+        if (isGuessCorrect){
+            db.RoomSolves.Add(new RoomSolve{
+                RoomId = roomId,
+                LiteralWord = roomActiveWord,
+                UserId = userId,
+                SolvedDateTime = DateTime.UtcNow
+            });
+
+            await db.SaveChangesAsync();
+        }
         // If the player is the last non-asker to solve the word, then
         //   - mark the word as completed.
         //   - change the room's asker.

@@ -139,6 +139,9 @@ public class BaseTests: IDisposable
         GmwServerDbContext db,
         IDictionary<string, object[]> tables
     ){
+        if (tables.TryGetValue("RoomSolves", out var roomSolvesData))
+            db.RoomSolves.AddRange((RoomSolve[])roomSolvesData);
+
         if (tables.TryGetValue("RoomWords", out var roomWordsData))
             foreach(var room in (RoomWord[])roomWordsData)
                 db.RoomWords.Add(room);

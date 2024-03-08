@@ -10,9 +10,7 @@ public class Player
 
     public UserId UserId {get; init;} = null!;
 
-    public DateTime RoomJoinTime {get; init;}
-
-    public bool IsAsker {get; init;}
+    public DateTime RoomJoinTime {get; init;} = DateTime.UtcNow;
 
     #region Navigation properties
 
@@ -22,4 +20,12 @@ public class Player
     public User User {get; init;} = null!;
 
     #endregion
+
+    public RoomAsker ToRoomAsker() =>
+        new RoomAsker{
+            RoomId = RoomId,
+            UserId = UserId
+        };
+
+    public static implicit operator RoomAsker(Player p) => p.ToRoomAsker();
 }

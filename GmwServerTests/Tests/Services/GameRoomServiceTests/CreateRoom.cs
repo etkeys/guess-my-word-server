@@ -70,8 +70,15 @@ public partial class GameRoomServiceTests
             .And.AllSatisfy(a => {
                 a.UserId.Should().Be(expRoom.CreatedByUserId);
                 a.RoomJoinTime.Should().BeWithin(1.Minutes()).After(expRoom.CreatedDate);
-                a.IsAsker.Should().BeTrue();
             });
+
+        (await db.GetRoomCurrentAsker(actRooms.First().Id))
+            .Should().NotBeNull()
+            .And.BeEquivalentTo(
+                new Player{
+                    UserId = expRoom.CreatedByUserId
+                },
+                options => options.Including(o => o.UserId));
     }
 
     public static IEnumerable<object[]> CreateRoomTestsData => BundleTestCases(

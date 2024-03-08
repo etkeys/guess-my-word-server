@@ -20,7 +20,10 @@ public class GameRoomService: IGameRoomService
         using var db = await _dbContextFactory.CreateDbContextAsync();
         using var trans = await db.Database.BeginTransactionAsync();
 
-        if (!((await db.Players.FindAsync(roomId, userId))?.IsAsker ?? false))
+        var player = await db.Players.FindAsync(roomId, userId);
+        var currentAsker = await db.GetRoomCurrentAsker(roomId);
+
+        if ((await db.Players.FindAsync(roomId, userId)) != (await db.GetRoomCurrentAsker(roomId)))
             return ServiceResults.UnprocessableEntity<RoomWord>("User is not the current asker.");
 
         if (await RoomHasActiveWord(db, roomId))
@@ -89,6 +92,7 @@ public class GameRoomService: IGameRoomService
 
     public async Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider){
         using var db = await _dbContextFactory.CreateDbContextAsync();
+        using var trans = await db.Database.BeginTransactionAsync();
 
         var requestingUser = await
             (from u in db.Users
@@ -108,10 +112,11 @@ public class GameRoomService: IGameRoomService
         var newPlayer = new Player{
             RoomId = newRoom.Id,
             UserId = requestingUser.Id,
-            IsAsker = true,
             RoomJoinTime = newRoom.CreatedDate
         };
         db.Players.Add(newPlayer);
+
+        db.RoomAskers.Add(newPlayer.ToRoomAsker());
 
         await db.SaveChangesAsync();
 
@@ -140,6 +145,8 @@ public class GameRoomService: IGameRoomService
                     throw;
             }
         }
+
+        await trans.CommitAsync();
 
         return ServiceResults.Created(newRoom.Id);
     }
@@ -214,15 +221,10 @@ public class GameRoomService: IGameRoomService
         if (player is null)
             return ServiceResults.Forbidden<SolveWordResultVm>("User is not a player in the room.");
 
-        if (player.IsAsker)
+        if ((await db.GetRoomCurrentAsker(roomId)) == player)
             return ServiceResults.UnprocessableEntity<SolveWordResultVm>("Player cannot solve the current word because they are the asker.");
 
-        var roomActiveWord = await
-            (from rw in db.RoomWords
-            where rw.CompletedDateTime == null
-            select rw.LiteralWord)
-            .FirstOrDefaultAsync();
-
+        var roomActiveWord = await db.GetRoomActiveWord(roomId);
         if (roomActiveWord is null)
             return ServiceResults.UnprocessableEntity<SolveWordResultVm>("There is no active word to solve.");
 
@@ -230,7 +232,7 @@ public class GameRoomService: IGameRoomService
             (from rs in db.RoomSolves
             where
                 rs.RoomId == roomId
-                && rs.LiteralWord == roomActiveWord
+                && rs.LiteralWord == roomActiveWord.LiteralWord
                 && rs.UserId == userId
             select rs)
             .AnyAsync();
@@ -239,25 +241,36 @@ public class GameRoomService: IGameRoomService
             return ServiceResults.UnprocessableEntity<SolveWordResultVm>("User has already solved the active word.");
 
         // TODO are there ways to allow "close enough" answers? Spelling is hard.
-        var isGuessCorrect = string.Equals(roomActiveWord, guessWord, StringComparison.InvariantCultureIgnoreCase);
+        var isGuessCorrect = string.Equals(roomActiveWord.LiteralWord, guessWord, StringComparison.InvariantCultureIgnoreCase);
 
         if (isGuessCorrect){
+            using var trans = await db.Database.BeginTransactionAsync();
+
             db.RoomSolves.Add(new RoomSolve{
                 RoomId = roomId,
-                LiteralWord = roomActiveWord,
+                LiteralWord = roomActiveWord.LiteralWord,
                 UserId = userId,
-                SolvedDateTime = DateTime.UtcNow
             });
 
             await db.SaveChangesAsync();
+
+            if ((await db.CountPlayersNotSolvedRoomActiveWord(roomId)) == 0){
+                roomActiveWord.CompletedDateTime = DateTime.UtcNow;
+
+                var currentAsker = await db.GetRoomCurrentAsker(roomId);
+                var nextAsker = await db.GetRoomNextAsker(roomId);
+
+                db.RoomAskers.Remove(currentAsker);
+                db.RoomAskers.Add(nextAsker);
+
+                await db.SaveChangesAsync();
+            }
+
+            await trans.CommitAsync();
         }
-        // If the player is the last non-asker to solve the word, then
-        //   - mark the word as completed.
-        //   - change the room's asker.
 
         return ServiceResults.Ok(new SolveWordResultVm(isGuessCorrect));
     }
-
 
 }
 

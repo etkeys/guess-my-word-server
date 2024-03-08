@@ -66,8 +66,13 @@ public partial class GameRoomServiceTests
         actPlayers.Should().ContainSingle();
 
         var actPlayer = actPlayers.First();
-        actPlayer.IsAsker.Should().BeFalse();
         actPlayer.RoomJoinTime.Should().BeWithin(1.Minutes()).After(expJoinTime);
+
+        (await db.GetRoomCurrentAsker(expRoomId))
+            .Should().NotBeNull()
+            .And.NotBeEquivalentTo(actPlayer, options =>
+                options.Including(o => o.RoomId)
+                    .Including(o => o.UserId));
     }
 
     public static IEnumerable<object[]> JoinRoomTestsData => BundleTestCases(
@@ -93,33 +98,33 @@ public partial class GameRoomServiceTests
             .WithSetup("database", BasicTestData)
 
 
-        ,new TestCase("Player is already in the room")
+        ,new TestCase("Join code not registered")
             .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
             .WithInput("join code", new RoomJoinCode("NaaabbEb"))
             .WithInput("mock normalized join code", new RoomJoinCode("NaaabbEb"))
-            .WithExpected("count player", 1)
+            .WithExpected("count player", 2)
             .WithExpected("error", "Could not find room using given join code.")
             .WithExpected("is error", true)
             .WithExpected("status", HttpStatusCode.NotFound)
             .WithSetup("database", BasicTestData)
 
 
-        ,new TestCase("Player is already in the room")
+        ,new TestCase("Join code has invalid character")
             .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
             .WithInput("join code", new RoomJoinCode("aa?abbEb"))
             .WithInput("mock normalized join code", new RoomJoinCode("aa.abbEb"))
-            .WithExpected("count player", 1)
+            .WithExpected("count player", 2)
             .WithExpected("error", "Could not find room using given join code.")
             .WithExpected("is error", true)
             .WithExpected("status", HttpStatusCode.NotFound)
             .WithSetup("database", BasicTestData)
 
 
-        ,new TestCase("Player is already in the room")
+        ,new TestCase("Join code is empty string")
             .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
             .WithInput("join code", new RoomJoinCode(""))
             .WithInput("mock normalized join code", new RoomJoinCode(""))
-            .WithExpected("count player", 1)
+            .WithExpected("count player", 2)
             .WithExpected("error", "Could not find room using given join code.")
             .WithExpected("is error", true)
             .WithExpected("status", HttpStatusCode.NotFound)

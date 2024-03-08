@@ -55,11 +55,35 @@ public partial class GameRoomServiceTests
             select rs)
             .ToListAsync();
 
-        if (expIsCorrect)
-            actRoomSolves.Should().ContainSingle()
-                .And.AllSatisfy(i => i.SolvedDateTime.Should().BeWithin(1.Minutes()).After(expSolvedDateTime));
-        else
+        if (!expIsCorrect){
             actRoomSolves.Should().BeEmpty();
+            (await db.GetRoomActiveWord(inpGameRoom)).Should().NotBeNull();
+
+            return;
+        }
+
+        actRoomSolves.Should().ContainSingle()
+            .And.AllSatisfy(i => i.SolvedDateTime.Should().BeWithin(1.Minutes()).After(expSolvedDateTime));
+
+        if (await db.CountPlayersNotSolvedRoomActiveWord(inpGameRoom) != 0) return;
+
+        (await db.GetRoomActiveWord(inpGameRoom)).Should().BeNull();
+
+        (await
+            (from rw in db.RoomWords
+            where
+                rw.RoomId == inpGameRoom
+                && rw.CompletedDateTime != null
+            orderby rw.CompletedDateTime descending
+            select rw.LiteralWord)
+            .FirstAsync())
+        .Should().Be(inpGuess.ToLower());
+
+        var expCurrentAsker = (Player)test.Expected["new asker"]!;
+        (await db.GetRoomCurrentAsker(inpGameRoom))
+            .Should().BeEquivalentTo(expCurrentAsker, options =>
+                options.Including(o => o.RoomId)
+                    .Including(o => o.UserId));
     }
 
     public static IEnumerable<object[]> SolveWordTestsData => BundleTestCases(
@@ -69,6 +93,10 @@ public partial class GameRoomServiceTests
             .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
             .WithExpected("is correct", true)
             .WithExpected("is error", false)
+            .WithExpected("new asker", new Player{
+                RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                UserId = UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce")
+            })
             .WithExpected("status", HttpStatusCode.OK)
             .WithExpected("solved date time", DateTime.UtcNow)
             .WithSetup("database", BasicTestData)
@@ -92,6 +120,10 @@ public partial class GameRoomServiceTests
             .WithInput("user id", UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce"))
             .WithExpected("is correct", true)
             .WithExpected("is error", false)
+            .WithExpected("new asker", new Player{
+                RoomId = GameRoomId.FromString("bc428470-1c15-4822-880b-f90965036ae2"),
+                UserId = UserId.FromString("1fce0ea5-5736-454d-a3b3-30ca9b163bce")
+            })
             .WithExpected("status", HttpStatusCode.OK)
             .WithExpected("solved date time", DateTime.UtcNow)
             .WithSetup("database", BasicTestData)

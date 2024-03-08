@@ -16,6 +16,7 @@ public partial class GmwServerDbContext: DbContext
     public DbSet<JoinCode> JoinCodes {get; set;}
     public DbSet<Player> Players {get; set;}
     public DbSet<GameRoom> Rooms {get; set;}
+    public DbSet<RoomAsker> RoomAskers {get; set;}
     public DbSet<RoomHint> RoomHints {get; set;}
     public DbSet<RoomWord> RoomWords {get; set;}
     public DbSet<RoomSolve> RoomSolves {get; set;}

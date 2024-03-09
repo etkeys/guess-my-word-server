@@ -90,6 +90,70 @@ public class GameRoomService: IGameRoomService
         return ServiceResults.Created(newUsedWord);
     }
 
+    private async Task<IServiceResult<CompleteWordResultVm>> CompleteWord(
+        GameRoomId roomId,
+        UserId userId,
+        string? guess = null,
+        bool isSurrender = false
+    ){
+        using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        var player = await db.Players.FindAsync(roomId, userId);
+        if (player is null)
+            return ServiceResults.Forbidden<CompleteWordResultVm>("User is not a player in the room.");
+
+        if ((await db.GetRoomCurrentAsker(roomId)) == player)
+            return ServiceResults.UnprocessableEntity<CompleteWordResultVm>("Player cannot complete active word because they are the asker.");
+
+        var activeWord = await db.GetRoomActiveWord(roomId);
+        if (activeWord is null)
+            return ServiceResults.UnprocessableEntity<CompleteWordResultVm>("There is no active word to complete.");
+
+        var userHasAlreadySolved = await
+            (from rs in db.RoomSolves
+            where
+                rs.RoomId == roomId
+                && rs.LiteralWord == activeWord.LiteralWord
+                && rs.UserId == userId
+            select rs)
+            .AnyAsync();
+
+        if (userHasAlreadySolved)
+            return ServiceResults.UnprocessableEntity<CompleteWordResultVm>("User has already completed the active word.");
+
+        // TODO are there ways to allow "close enough" answers? Spelling is hard.
+        var isGuessCorrect = string.Equals(activeWord.LiteralWord, guess, StringComparison.InvariantCultureIgnoreCase);
+
+        if (isSurrender || isGuessCorrect){
+            using var trans = await db.Database.BeginTransactionAsync();
+
+            db.RoomSolves.Add(new RoomSolve{
+                RoomId = roomId,
+                LiteralWord = activeWord.LiteralWord,
+                UserId = userId,
+                HasSurrended = isSurrender,
+            });
+
+            await db.SaveChangesAsync();
+
+            if ((await db.CountPlayersNotSolvedRoomActiveWord(roomId)) == 0){
+                activeWord.CompletedDateTime = DateTime.UtcNow;
+
+                var currentAsker = await db.GetRoomCurrentAsker(roomId);
+                var nextAsker = await db.GetRoomNextAsker(roomId);
+
+                db.RoomAskers.Remove(currentAsker);
+                db.RoomAskers.Add(nextAsker);
+
+                await db.SaveChangesAsync();
+            }
+
+            await trans.CommitAsync();
+        }
+
+        return ServiceResults.Ok(new CompleteWordResultVm(isGuessCorrect, isSurrender));
+    }
+
     public async Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider){
         using var db = await _dbContextFactory.CreateDbContextAsync();
         using var trans = await db.Database.BeginTransactionAsync();
@@ -214,63 +278,12 @@ public class GameRoomService: IGameRoomService
         select true)
         .AnyAsync();
 
-    public async Task<IServiceResult<SolveWordResultVm>> SolveWord(GameRoomId roomId, UserId userId, string guessWord){
-        using var db = await _dbContextFactory.CreateDbContextAsync();
+    public Task<IServiceResult<CompleteWordResultVm>> SolveWord(GameRoomId roomId, UserId userId, string guessWord) =>
+        CompleteWord(roomId, userId, guessWord);
 
-        var player = await db.Players.FindAsync(roomId, userId);
-        if (player is null)
-            return ServiceResults.Forbidden<SolveWordResultVm>("User is not a player in the room.");
 
-        if ((await db.GetRoomCurrentAsker(roomId)) == player)
-            return ServiceResults.UnprocessableEntity<SolveWordResultVm>("Player cannot solve the current word because they are the asker.");
-
-        var roomActiveWord = await db.GetRoomActiveWord(roomId);
-        if (roomActiveWord is null)
-            return ServiceResults.UnprocessableEntity<SolveWordResultVm>("There is no active word to solve.");
-
-        var userHasAlreadySolved = await
-            (from rs in db.RoomSolves
-            where
-                rs.RoomId == roomId
-                && rs.LiteralWord == roomActiveWord.LiteralWord
-                && rs.UserId == userId
-            select rs)
-            .AnyAsync();
-
-        if (userHasAlreadySolved)
-            return ServiceResults.UnprocessableEntity<SolveWordResultVm>("User has already solved the active word.");
-
-        // TODO are there ways to allow "close enough" answers? Spelling is hard.
-        var isGuessCorrect = string.Equals(roomActiveWord.LiteralWord, guessWord, StringComparison.InvariantCultureIgnoreCase);
-
-        if (isGuessCorrect){
-            using var trans = await db.Database.BeginTransactionAsync();
-
-            db.RoomSolves.Add(new RoomSolve{
-                RoomId = roomId,
-                LiteralWord = roomActiveWord.LiteralWord,
-                UserId = userId,
-            });
-
-            await db.SaveChangesAsync();
-
-            if ((await db.CountPlayersNotSolvedRoomActiveWord(roomId)) == 0){
-                roomActiveWord.CompletedDateTime = DateTime.UtcNow;
-
-                var currentAsker = await db.GetRoomCurrentAsker(roomId);
-                var nextAsker = await db.GetRoomNextAsker(roomId);
-
-                db.RoomAskers.Remove(currentAsker);
-                db.RoomAskers.Add(nextAsker);
-
-                await db.SaveChangesAsync();
-            }
-
-            await trans.CommitAsync();
-        }
-
-        return ServiceResults.Ok(new SolveWordResultVm(isGuessCorrect));
-    }
+    public Task<IServiceResult<CompleteWordResultVm>> Surrender(GameRoomId roomId, UserId userId) =>
+        CompleteWord(roomId, userId, isSurrender: true);
 
 }
 
@@ -284,6 +297,7 @@ public interface IGameRoomService
     Task<IServiceResult<GameRoomId>> CreateRoom(UserId requestingUserId, IRoomJoinCodeProvider jcProvider);
     Task<IServiceResult<GameRoom>> GetRoomStatus(GameRoomId id);
     Task<IServiceResult<GameRoomId>> JoinRoom(UserId userId, RoomJoinCode joinCode, IRoomJoinCodeProvider jcProvider);
-    Task<IServiceResult<SolveWordResultVm>> SolveWord(GameRoomId roomId, UserId userId, string guessWord);
+    Task<IServiceResult<CompleteWordResultVm>> SolveWord(GameRoomId roomId, UserId userId, string guess);
+    Task<IServiceResult<CompleteWordResultVm>> Surrender(GameRoomId roomId, UserId userId);
 
 }

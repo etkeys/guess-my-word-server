@@ -19,6 +19,8 @@ public class RoomSolve
 
     public DateTime SolvedDateTime {get; init;} = DateTime.UtcNow;
 
+    public bool HasSurrended {get; init;}
+
 
     #region Navigation properties
 
